@@ -1,0 +1,77 @@
+<div class="flex-grow flex flex-col items-center py-12 px-4 w-full">
+  <div class="max-w-4xl w-full flex flex-col items-center">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">Mi perfil</h1>
+    
+    <!-- Avatar section -->
+    <div class="flex flex-col items-center mb-10">
+      <div class="w-32 h-32 rounded-full bg-blue-600 flex items-center justify-center text-white text-5xl font-bold shadow-md mb-6">
+        <svg class="w-20 h-20 fill-current opacity-80" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+      </div>
+      <button type="button" class="px-8 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-md transform hover:-translate-y-0.5 duration-200">
+        Actualizar foto de perfil
+      </button>
+    </div>
+
+    <!-- Form section -->
+    <form class="flex flex-col space-y-6 w-full max-w-2xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold text-gray-700 mb-2">Nombres</label>
+          <input type="text" value="Juan Pérez" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+        </div>
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold text-gray-700 mb-2">Apellidos</label>
+          <input type="text" value="García" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold text-gray-700 mb-2">DNI</label>
+          <input type="text" value="12345678" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+        </div>
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold text-gray-700 mb-2">Teléfono</label>
+          <input type="tel" value="987654321" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold text-gray-700 mb-2">Correo electrónico</label>
+          <input type="email" value="juan@correo.com" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+        </div>
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold text-gray-700 mb-2">Distrito</label>
+          <select class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800 appearance-none cursor-pointer">
+            <option value="lima" selected>Lima</option>
+            <option value="ate">Ate</option>
+            <option value="miraflores">Miraflores</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col">
+        <label class="text-sm font-semibold text-gray-700 mb-2">Dirección de domicilio</label>
+        <input type="text" value="Av. Siempre Viva 123" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold text-gray-700 mb-2">Contraseña</label>
+          <input type="password" placeholder="••••••••" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+        </div>
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold text-gray-700 mb-2">Verificar contraseña</label>
+          <input type="password" placeholder="••••••••" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+        </div>
+      </div>
+
+      <button type="button" class="w-full py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-md mt-8">
+        Actualizar información
+      </button>
+    </form>
+  </div>
+</div>
