@@ -1,0 +1,46 @@
+<div class="flex-grow flex flex-col items-center justify-center bg-yellow-50 py-16 px-4">
+  <div class="max-w-6xl w-full">
+    <h1 class="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-12">
+      Nos encantaría saber de ti
+    </h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center bg-white rounded-[3rem] p-8 md:p-12 shadow-sm border border-gray-100">
+      <!-- Columna Izquierda -->
+      <div class="flex justify-center">
+        <img src="/images/contact-team.png" alt="Equipo de Gestionate" class="w-full max-w-md object-contain" />
+      </div>
+
+      <!-- Columna Derecha (Formulario) -->
+      <div>
+        <form class="flex flex-col space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div class="flex flex-col">
+              <label class="text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+              <input type="text" placeholder="Nombre Completo" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+            </div>
+            <div class="flex flex-col">
+              <label class="text-sm font-semibold text-gray-700 mb-2">Correo electrónico</label>
+              <input type="email" placeholder="@correo.com" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+            </div>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-2">Asunto</label>
+            <input type="text" placeholder="¿Cómo podemos ayudar?" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+          </div>
+
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-2">Mensaje</label>
+            <textarea placeholder="Escribe tu mensaje aquí..." rows="5" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800 resize-none"></textarea>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <button type="button" class="px-8 py-3 bg-green-900 text-white font-bold rounded-xl hover:bg-green-800 transition-colors shadow-md transform hover:-translate-y-0.5 duration-200">
+              Enviar mensaje
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
