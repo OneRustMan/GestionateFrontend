@@ -1,0 +1,37 @@
+<div class="home-container">
+  
+  <section class="welcome-section">
+    <h1>Bienvenido a Gestionate</h1>
+    
+    <div class="action-buttons">
+      <button class="btn-primary" routerLink="/crear-reporte">Crear Reporte</button>
+      <a class="link-secondary" routerLink="/mis-reportes">Ver mis reportes</a>
+    </div>
+  </section>
+
+  <section class="reports-section">
+    <h2>Tus últimos reportes</h2>
+
+    <div class="reports-content">
+      <div class="reports-card">
+        <ng-container *ngFor="let report of recentReports; let last = last">
+          <div class="report-item">
+            <h3>{{ report.title }}</h3>
+            <p>{{ report.description }}</p>
+          </div>
+          <hr *ngIf="!last" class="divider">
+        </ng-container>
+
+        <a class="link-all" routerLink="/mis-reportes">
+          Ver todos mis reportes
+          <span class="arrow">→</span>
+        </a>
+      </div>
+
+      <div class="illustration-container">
+        <img src="images/home-phone.svg" alt="Ilustración de reporte en móvil" />
+      </div>
+    </div>
+  </section>
+
+</div>

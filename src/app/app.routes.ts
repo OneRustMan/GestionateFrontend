@@ -12,6 +12,7 @@ import { RegisterOperative } from './pages/register-operative/register-operative
 import { Profile } from './pages/profile/profile';
 import { ForgotPassword } from './pages/forgot-password/forgot-password';
 import { UpdatePassword } from './pages/update-password/update-password';
+import { HomeComponent } from './pages/home/home';
 
 export const routes: Routes = [
   {
@@ -20,7 +21,8 @@ export const routes: Routes = [
     children: [
       { path: '', component: Landing },
       { path: 'contacto', component: Contact },
-      { path: 'perfil', component: Profile }
+      { path: 'perfil', component: Profile },
+      { path: 'home', component: HomeComponent }
     ]
   },
   {
