@@ -1,25 +1,34 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-navbar',
-  imports: [RouterLink, RouterLinkActive, CommonModule],
+  imports: [RouterLink, CommonModule],
   templateUrl: './navbar.html',
   styleUrl: './navbar.css',
 })
 export class Navbar implements OnInit {
-  @Input() isLoggedIn = false;
+  isLoggedIn = false;
 
   constructor(private router: Router) {}
 
   ngOnInit() {
-    // Escuchar cambios de ruta para simular estado de sesión
+    this.checkLoginStatus(this.router.url);
+
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
-      this.isLoggedIn = event.urlAfterRedirects.includes('/perfil');
+      this.checkLoginStatus(event.urlAfterRedirects);
     });
+  }
+
+  checkLoginStatus(url: string) {
+    if (url.includes('/perfil') || url.includes('/home')) {
+      this.isLoggedIn = true;
+    } else {
+      this.isLoggedIn = false;
+    }
   }
 }
