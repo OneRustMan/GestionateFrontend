@@ -15,3 +15,5 @@ body {
   --color-green-800: #105943;
   --color-green-400: #29e46b;
 }
+
+@import "leaflet/dist/leaflet.css";

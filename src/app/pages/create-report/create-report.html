@@ -1,0 +1,94 @@
+<div class="create-report-container">
+  <div class="content-wrapper">
+    <div class="form-section">
+      <h1>Reportar acumulación de basura</h1>
+
+      <div class="form-group">
+        <label>Describe el problema</label>
+        <textarea placeholder="Detalla aquí..." [(ngModel)]="description"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Ubicación o referencia del lugar</label>
+        <div class="input-with-button location-input">
+          <div class="icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="black"/>
+            </svg>
+          </div>
+          <input type="text" placeholder="Escribe la dirección" [(ngModel)]="location">
+          <button class="btn-inside" (click)="openMapModal()">Ubica en el mapa</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de incidente</label>
+        <div class="radio-group-box">
+          <label class="radio-label" *ngFor="let type of incidentTypes">
+            <input type="radio" name="incidentType" [value]="type" [(ngModel)]="selectedIncidentType">
+            <span class="radio-custom"></span>
+            {{ type }}
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Agregar foto</label>
+        <div class="input-with-button file-input-wrapper">
+          <div class="icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 8V19H20V8H4ZM12 17C9.79 17 8 15.21 8 13C8 10.79 9.79 9 12 9C14.21 9 16 10.79 16 13C16 15.21 14.21 17 12 17ZM12 10.5C10.62 10.5 9.5 11.62 9.5 13C9.5 14.38 10.62 15.5 12 15.5C13.38 15.5 14.5 14.38 14.5 13C14.5 11.62 13.38 10.5 12 10.5Z" fill="black"/>
+              <path d="M20 6H16.83L15 4H9L7.17 6H4C2.9 6 2 6.9 2 8V19C2 20.1 2.9 21 4 21H20C21.1 21 22 20.1 22 19V8C22 6.9 21.1 6 20 6Z" fill="black"/>
+            </svg>
+          </div>
+          <input type="text" placeholder="Agregar foto" readonly [value]="selectedFileName">
+          <button class="btn-inside dark" (click)="triggerFileInput()">Cargar foto</button>
+          <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;" accept="image/*">
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn-submit" (click)="onSubmit()" [disabled]="!description.trim() || !location.trim() || !selectedIncidentType">Enviar reporte</button>
+        <button class="btn-cancel" routerLink="/home">Cancelar</button>
+      </div>
+
+    </div>
+    
+    <div class="illustration-section">
+      <img src="images/cleaning_illustration.png" alt="Cleaning illustration" class="main-illustration">
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal">
+  <div class="modal-content">
+    <h2>Confirmación de reporte</h2>
+    <p class="modal-subtitle">Tu reporte fue registrado correctamente</p>
+    
+    <div class="modal-details">
+      <p>Número de reporte: {{ reportNumber }}</p>
+      <p>Fecha de reporte: {{ reportDate }}</p>
+    </div>
+    
+    <div class="modal-actions">
+      <button class="btn-modal-primary" routerLink="/mis-reportes">Ver mi reporte</button>
+      <button class="btn-modal-secondary" routerLink="/home">Volver al inicio</button>
+    </div>
+  </div>
+</div>
+
+<!-- Map Modal -->
+<div class="modal-overlay" *ngIf="showMapModal">
+  <div class="modal-content map-modal-content">
+    <h2>Selecciona la ubicación</h2>
+    <p class="modal-subtitle">Haz clic en el mapa para ubicar el incidente</p>
+    <div id="map" class="map-container"></div>
+    <div class="modal-details" style="margin-top: 1rem; margin-bottom: 1rem; text-align: center;">
+      <p style="font-weight: bold; margin-bottom: 0;">{{ location || 'Selecciona un punto...' }}</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-primary" (click)="confirmLocation()">Confirmar ubicación</button>
+      <button class="btn-modal-secondary" (click)="closeMapModal()">Cancelar</button>
+    </div>
+  </div>
+</div>

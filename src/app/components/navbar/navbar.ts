@@ -25,7 +25,7 @@ export class Navbar implements OnInit {
   }
 
   checkLoginStatus(url: string) {
-    if (url.includes('/perfil') || url.includes('/home')) {
+    if (url.includes('/perfil') || url.includes('/home') || url.includes('/crear-reporte') || url.includes('/mis-reportes')) {
       this.isLoggedIn = true;
     } else {
       this.isLoggedIn = false;
