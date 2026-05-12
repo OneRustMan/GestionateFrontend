@@ -27,11 +27,16 @@ describe('CreateReportComponent', () => {
     component.location = '';
     component.selectedIncidentType = '';
     
-    spyOn(window, 'alert');
+    let alertCalled = false;
+    const originalAlert = window.alert;
+    window.alert = () => { alertCalled = true; };
+    
     component.onSubmit();
     
-    expect(window.alert).toHaveBeenCalled();
-    expect(component.showModal).toBeFalse();
+    expect(alertCalled).toBe(true);
+    expect(component.showModal).toBe(false);
+    
+    window.alert = originalAlert;
   });
 
   it('should allow submission if fields are filled', () => {
@@ -41,7 +46,7 @@ describe('CreateReportComponent', () => {
     
     component.onSubmit();
     
-    expect(component.showModal).toBeTrue();
+    expect(component.showModal).toBe(true);
     expect(component.reportNumber).toBeTruthy();
     expect(component.reportDate).toBeTruthy();
   });
