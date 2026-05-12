@@ -13,6 +13,7 @@ import { Profile } from './pages/profile/profile';
 import { ForgotPassword } from './pages/forgot-password/forgot-password';
 import { UpdatePassword } from './pages/update-password/update-password';
 import { HomeComponent } from './pages/home/home';
+import { CreateReportComponent } from './pages/create-report/create-report';
 
 export const routes: Routes = [
   {
@@ -22,7 +23,8 @@ export const routes: Routes = [
       { path: '', component: Landing },
       { path: 'contacto', component: Contact },
       { path: 'perfil', component: Profile },
-      { path: 'home', component: HomeComponent }
+      { path: 'home', component: HomeComponent },
+      { path: 'crear-reporte', component: CreateReportComponent }
     ]
   },
   {
