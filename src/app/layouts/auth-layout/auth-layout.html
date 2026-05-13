@@ -1,0 +1,21 @@
+<div class="min-h-screen flex flex-col bg-yellow-50">
+  <app-navbar></app-navbar>
+
+  <div class="flex-grow flex items-center justify-center p-4 md:p-8">
+    <div class="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <!-- Columna Izquierda -->
+      <div class="hidden md:flex flex-col items-center justify-center bg-gray-200/60 rounded-[3rem] p-12 text-center shadow-sm h-full">
+        <img [src]="currentImage" alt="Ilustración" class="w-full max-w-md mb-8 object-contain drop-shadow-md transition-all duration-300" />
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Únete a Gestionate</h2>
+        <p class="text-gray-600 max-w-sm mx-auto">
+          Accede o Regístrate para gestionar y/o reportar incidencias de basura.
+        </p>
+      </div>
+      
+      <!-- Columna Derecha -->
+      <div class="flex flex-col items-center justify-center w-full px-4">
+        <router-outlet></router-outlet>
+      </div>
+    </div>
+  </div>
+</div>
