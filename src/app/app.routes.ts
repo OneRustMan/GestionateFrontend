@@ -14,6 +14,7 @@ import { ForgotPassword } from './pages/forgot-password/forgot-password';
 import { UpdatePassword } from './pages/update-password/update-password';
 import { HomeComponent } from './pages/home/home';
 import { CreateReportComponent } from './pages/create-report/create-report';
+import { ReportsComponent } from './pages/reports-list/reports'; 
 
 export const routes: Routes = [
   {
@@ -24,7 +25,8 @@ export const routes: Routes = [
       { path: 'contacto', component: Contact },
       { path: 'perfil', component: Profile },
       { path: 'home', component: HomeComponent },
-      { path: 'crear-reporte', component: CreateReportComponent }
+      { path: 'crear-reporte', component: CreateReportComponent },
+      { path: 'mis-reportes', component: ReportsComponent } 
     ]
   },
   {

@@ -1,0 +1,95 @@
+<div class="reports-container">
+  
+  <h1>Mis reportes</h1>
+
+  <div class="search-bar-container">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Buscar reporte" class="search-input">
+  </div>
+
+  <div class="layout-grid">
+    
+    <aside class="sidebar-filters">
+      <div class="filter-group">
+        <h3>Ordenar por fecha</h3>
+        <label class="radio-label">
+          <input type="radio" name="order" checked> Más recientes
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="order"> Más antiguos
+        </label>
+      </div>
+
+      <div class="filter-group">
+        <h3>Filtrar por estado</h3>
+        <label class="radio-label">
+          <input type="radio" name="status"> Recibidos
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="status"> Derivados
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="status"> Completados
+        </label>
+      </div>
+    </aside>
+
+    <section class="reports-list">
+      <ng-container *ngFor="let reporte of reportsList">
+        <div class="report-card" 
+             (click)="selectReport(reporte)"
+             [class.active-card]="selectedReport === reporte"
+             style="cursor: pointer;">
+          <h2>{{ reporte.id }}</h2>
+          <p>Tipo: {{ reporte.tipo }}</p>
+          <p>Lugar: {{ reporte.lugar }}</p>
+          <p>Fecha: {{ reporte.fecha }}</p>
+          <div class="badge">{{ reporte.estado }}</div>
+          
+          <div class="active-indicator" *ngIf="selectedReport === reporte">→</div>
+        </div>
+      </ng-container>
+    </section>
+
+    <section class="report-details" *ngIf="!selectedReport" style="display: flex; align-items: center; justify-content: center; text-align: center; border: 2px dashed #ccc;">
+      <h3 style="color: #666;">Selecciona un reporte de la lista para ver el detalle.</h3>
+    </section>
+
+    <section class="report-details" *ngIf="selectedReport">
+      <h3>Detalle del reporte {{ selectedReport.id }}</h3>
+      
+      <div class="detail-section">
+        <p class="section-title">Descripción del problema</p>
+        <div class="description-box">
+          {{ selectedReport.description }}
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <p class="section-title">Foto</p>
+        <div class="photos-grid">
+          <div class="photo-placeholder">IMG</div>
+          <div class="photo-placeholder">IMG</div>
+          <div class="photo-placeholder">IMG</div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <p class="section-title">Ver ubicación</p>
+        <div class="map-placeholder">
+          <p>Mapa de {{ selectedReport.lugar }}</p>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <p class="section-title">Estado del reporte</p>
+        <ul class="status-timeline">
+          <li [class.active]="selectedReport.estado === 'Recibido' || selectedReport.estado === 'Derivado' || selectedReport.estado === 'Completado'"><span class="circle"></span> 1. Recibido</li>
+          <li [class.active]="selectedReport.estado === 'Derivado' || selectedReport.estado === 'Completado'"><span class="circle"></span> 2. Derivado</li>
+          <li [class.active]="selectedReport.estado === 'Completado'"><span class="circle"></span> 3. Tarea completada</li>
+        </ul>
+      </div>
+    </section>
+
+  </div>
+</div>
