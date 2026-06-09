@@ -1,105 +1,106 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { Router, NavigationEnd } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { filter } from "rxjs/operators";
+import { AuthService } from "../../services/auth.service";
+import { ReceptionService } from "../../services/reception.service";
+import { ReportService } from "../../services/report.service";
+import { WorkOrderService } from "../../services/work-order.service";
+import { ReportSummary } from "../../models/report.models";
+import { WorkOrderSummary } from "../../models/work-order.models";
+
+interface ViewItem {
+  numericId: number;
+  id: string;
+  tipo: string;
+  lugar: string;
+  fecha: string;
+  estado: string;
+  description: string;
+}
 
 @Component({
-  selector: 'app-reports',
+  selector: "app-reports",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './reports.html',
-  styleUrls: ['./reports.css']
+  templateUrl: "./reports.html",
+  styleUrls: ["./reports.css"]
 })
 export class ReportsComponent implements OnInit {
-  
-  currentUserRole: string = 'ciudadano'; 
-  currentView: string = 'ciudadano-mis-reportes'; 
+  private readonly destroyRef = inject(DestroyRef);
 
-  // Variables para controlar los formularios de Recepcionista y Operativo
-  showCoordinarForm: boolean = false;
-  showDenegarForm: boolean = false; // NUEVO: Controla la vista de denegación
+  currentUserRole = "ciudadano";
+  currentView = "ciudadano-mis-reportes";
+  showCoordinarForm = false;
+  showDenegarForm = false;
+  isLoading = false;
+  errorMessage = "";
 
-  reportsList = [
-    { 
-      id: '#12345', 
-      tipo: 'Residuos orgánicos', 
-      lugar: 'Jr los mojaves 234', 
-      fecha: '21/02/2026', 
-      estado: 'Recibido',
-      description: 'Dejaron basura acumulada en la esquina del parque desde ayer.'
-    },
-    { 
-      id: '#12346', 
-      tipo: 'Desmonte o residuos de construcción', 
-      lugar: 'Jr los mojaves 234', 
-      fecha: '21/02/2026', 
-      estado: 'Pendiente de Recepción',
-      description: 'Hay sacos de escombros bloqueando la vereda peatonal.'
-    },
-    { 
-      id: '#12347', 
-      tipo: 'Muebles u objetos voluminosos', 
-      lugar: 'Jr los mojaves 234', 
-      fecha: '21/02/2026', 
-      estado: 'En Proceso',
-      description: 'Un sillón viejo abandonado en medio de la pista.'
-    },
-    { 
-      id: '#12348', 
-      tipo: 'Residuos comerciales', 
-      lugar: 'Jr los mojaves 234', 
-      fecha: '21/02/2026', 
-      estado: 'Completado',
-      description: 'Cajas de cartón bloqueando la entrada del mercado.'
-    }
-  ];
+  reportsList: ViewItem[] = [];
+  selectedReport: ViewItem | null = null;
 
-  selectedReport: any = null;
-
-  constructor(private router: Router) {}
+  constructor(
+    private readonly router: Router,
+    private readonly authService: AuthService,
+    private readonly reportService: ReportService,
+    private readonly receptionService: ReceptionService,
+    private readonly workOrderService: WorkOrderService,
+  ) {}
 
   ngOnInit() {
     this.determinarRolPorUrl(this.router.url);
     this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: any) => {
-      this.determinarRolPorUrl(event.urlAfterRedirects);
+      filter((event) => event instanceof NavigationEnd),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((event) => {
+      this.determinarRolPorUrl((event as NavigationEnd).urlAfterRedirects);
     });
   }
 
   determinarRolPorUrl(url: string) {
-    this.selectedReport = null; 
-    this.showCoordinarForm = false; 
-    this.showDenegarForm = false; 
+    this.selectedReport = null;
+    this.showCoordinarForm = false;
+    this.showDenegarForm = false;
 
-    if (url.includes('reportes-recibidos')) {
-      this.currentUserRole = 'recepcionista';
-      this.currentView = 'recepcionista-recibidos';
-    } else if (url.includes('reportes-derivados')) {
-      this.currentUserRole = 'recepcionista';
-      this.currentView = 'recepcionista-derivados';
-    } else if (url.includes('ordenes-asignadas')) {
-      this.currentUserRole = 'operativo';
-      this.currentView = 'operativo-asignadas';
-    } else if (url.includes('ordenes-completadas')) {
-      this.currentUserRole = 'operativo';
-      this.currentView = 'operativo-completadas';
+    if (url.includes("reportes-recibidos")) {
+      this.currentUserRole = "recepcionista";
+      this.currentView = "recepcionista-recibidos";
+    } else if (url.includes("reportes-derivados")) {
+      this.currentUserRole = "recepcionista";
+      this.currentView = "recepcionista-derivados";
+    } else if (url.includes("ordenes-asignadas")) {
+      this.currentUserRole = "operativo";
+      this.currentView = "operativo-asignadas";
+    } else if (url.includes("ordenes-completadas")) {
+      this.currentUserRole = "operativo";
+      this.currentView = "operativo-completadas";
     } else {
-      this.currentUserRole = 'ciudadano';
-      this.currentView = 'ciudadano-mis-reportes';
+      this.currentUserRole = "ciudadano";
+      this.currentView = "ciudadano-mis-reportes";
     }
+
+    this.loadItems();
   }
 
-  selectReport(report: any) {
+  selectReport(report: ViewItem) {
     this.selectedReport = report;
-    this.showCoordinarForm = false; 
-    this.showDenegarForm = false; 
+    this.showCoordinarForm = false;
+    this.showDenegarForm = false;
   }
 
-  // --- FUNCIONES DEL RECEPCIONISTA ---
   derivar() {
-    alert(`Reporte ${this.selectedReport.id} derivado al Área Operativa con éxito.`);
-    this.selectedReport.estado = 'Pendiente de Recepción';
+    const receptionistId = this.authService.getReceptionistId();
+    if (!this.selectedReport || !receptionistId) return;
+
+    this.receptionService.deriveReport(this.selectedReport.numericId, receptionistId, { priority: "MEDIUM" }).subscribe({
+      next: () => {
+        if (this.selectedReport) {
+          this.selectedReport.estado = "Derivado";
+        }
+      },
+      error: () => this.errorMessage = "No se pudo derivar el reporte.",
+    });
   }
 
   abrirFormularioDenegar() {
@@ -107,22 +108,138 @@ export class ReportsComponent implements OnInit {
   }
 
   confirmarDenegacion() {
-    alert(`Reporte ${this.selectedReport.id} ha sido denegado.`);
     this.showDenegarForm = false;
   }
 
-  // --- FUNCIONES DEL ÁREA OPERATIVA ---
   abrirFormularioCoordinar() {
     this.showCoordinarForm = true;
   }
 
   confirmarCoordinacion() {
-    alert(`Equipo asignado correctamente.`);
-    this.selectedReport.estado = 'En Proceso';
-    this.showCoordinarForm = false;
+    const cleaningStaffId = this.authService.getCleaningStaffId();
+    if (!this.selectedReport || !cleaningStaffId) return;
+
+    this.workOrderService.take(this.selectedReport.numericId, cleaningStaffId).subscribe({
+      next: () => {
+        if (this.selectedReport) {
+          this.selectedReport.estado = "En Proceso";
+        }
+        this.showCoordinarForm = false;
+      },
+      error: () => this.errorMessage = "No se pudo tomar la orden.",
+    });
   }
 
   registrarInforme() {
-    alert(`Informe registrado para el reporte ${this.selectedReport.id}`);
+    const cleaningStaffId = this.authService.getCleaningStaffId();
+    if (!this.selectedReport || !cleaningStaffId) return;
+
+    this.workOrderService.complete(this.selectedReport.numericId, cleaningStaffId, {
+      observation: "La incidencia fue atendida correctamente.",
+    }).subscribe({
+      next: () => {
+        if (this.selectedReport) {
+          this.selectedReport.estado = "Completado";
+        }
+      },
+      error: () => this.errorMessage = "No se pudo completar la orden.",
+    });
+  }
+
+  private loadItems(): void {
+    this.isLoading = true;
+    this.errorMessage = "";
+
+    if (this.currentUserRole === "ciudadano") {
+      const citizenId = this.authService.getCitizenId();
+      if (!citizenId) {
+        this.finishLoad([]);
+        return;
+      }
+
+      this.reportService.getCitizenHistory(citizenId).subscribe({
+        next: (reports) => this.finishLoad(reports.map((report) => this.mapReport(report))),
+        error: () => this.failLoad("No se pudieron cargar los reportes."),
+      });
+      return;
+    }
+
+    if (this.currentUserRole === "recepcionista") {
+      const receptionistId = this.authService.getReceptionistId();
+      if (!receptionistId) {
+        this.finishLoad([]);
+        return;
+      }
+
+      this.receptionService.getInbox(receptionistId).subscribe({
+        next: (reports) => this.finishLoad(reports.map((report) => this.mapReport(report))),
+        error: () => this.failLoad("No se pudieron cargar los reportes de recepcion."),
+      });
+      return;
+    }
+
+    const cleaningStaffId = this.authService.getCleaningStaffId();
+    if (!cleaningStaffId) {
+      this.finishLoad([]);
+      return;
+    }
+
+    this.workOrderService.getAvailable(cleaningStaffId).subscribe({
+      next: (orders) => this.finishLoad(orders.map((order) => this.mapWorkOrder(order))),
+      error: () => this.failLoad("No se pudieron cargar las ordenes."),
+    });
+  }
+
+  private finishLoad(items: ViewItem[]): void {
+    this.reportsList = items;
+    this.isLoading = false;
+  }
+
+  private failLoad(message: string): void {
+    this.reportsList = [];
+    this.errorMessage = message;
+    this.isLoading = false;
+  }
+
+  private mapReport(report: ReportSummary): ViewItem {
+    return {
+      numericId: report.id,
+      id: report.reportCode || "#" + report.id,
+      tipo: report.incidentTypes?.join(", ") || "Incidente",
+      lugar: report.location,
+      fecha: this.formatDate(report.createdAt),
+      estado: this.mapStatus(report.status),
+      description: report.description,
+    };
+  }
+
+  private mapWorkOrder(order: WorkOrderSummary): ViewItem {
+    return {
+      numericId: order.id,
+      id: "#" + order.id,
+      tipo: String(order.priority),
+      lugar: "Orden de trabajo",
+      fecha: this.formatDate(order.createdAt),
+      estado: this.mapStatus(order.status),
+      description: "Orden asociada al reporte #" + order.reportId,
+    };
+  }
+
+  private mapStatus(status: string): string {
+    const statusMap: Record<string, string> = {
+      RECEIVED: "Recibido",
+      DERIVED: "Derivado",
+      ORDER_COMPLETED: "Completado",
+      PENDING: "Pendiente de Recepción",
+      IN_PROGRESS: "En Proceso",
+      COMPLETED: "Completado",
+    };
+
+    return statusMap[status] || status;
+  }
+
+  private formatDate(value?: string): string {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat("es-PE").format(new Date(value));
   }
 }

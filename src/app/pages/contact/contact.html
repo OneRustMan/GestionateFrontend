@@ -12,31 +12,103 @@
 
       <!-- Columna Derecha (Formulario) -->
       <div>
-        <form class="flex flex-col space-y-6">
+        <form #contactForm="ngForm" class="flex flex-col space-y-6" novalidate (ngSubmit)="onSubmit(contactForm)">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div class="flex flex-col">
-              <label class="text-sm font-semibold text-gray-700 mb-2">Nombre</label>
-              <input type="text" placeholder="Nombre Completo" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+              <label for="name" class="text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="Nombre Completo"
+                required
+                [(ngModel)]="name"
+                #nameControl="ngModel"
+                class="px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800"
+                [class.border-red-500]="submitted && nameControl.invalid"
+                [class.border-gray-300]="!(submitted && nameControl.invalid)"
+              />
+              <p *ngIf="submitted && nameControl.errors?.['required']" class="text-sm text-red-600 mt-2">
+                Ingresa tu nombre.
+              </p>
             </div>
             <div class="flex flex-col">
-              <label class="text-sm font-semibold text-gray-700 mb-2">Correo electrónico</label>
-              <input type="email" placeholder="@correo.com" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+              <label for="email" class="text-sm font-semibold text-gray-700 mb-2">Correo electrónico</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="@correo.com"
+                required
+                email
+                [(ngModel)]="email"
+                #emailControl="ngModel"
+                class="px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800"
+                [class.border-red-500]="submitted && emailControl.invalid"
+                [class.border-gray-300]="!(submitted && emailControl.invalid)"
+              />
+              <p *ngIf="submitted && emailControl.errors?.['required']" class="text-sm text-red-600 mt-2">
+                Ingresa tu correo electrónico.
+              </p>
+              <p *ngIf="submitted && emailControl.errors?.['email']" class="text-sm text-red-600 mt-2">
+                Ingresa un correo electrónico válido.
+              </p>
             </div>
           </div>
 
           <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-2">Asunto</label>
-            <input type="text" placeholder="¿Cómo podemos ayudar?" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+            <label for="subject" class="text-sm font-semibold text-gray-700 mb-2">Asunto</label>
+            <input
+              id="subject"
+              name="subject"
+              type="text"
+              placeholder="¿Cómo podemos ayudar?"
+              required
+              [(ngModel)]="subject"
+              #subjectControl="ngModel"
+              class="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800"
+              [class.border-red-500]="submitted && subjectControl.invalid"
+              [class.border-gray-300]="!(submitted && subjectControl.invalid)"
+            />
+            <p *ngIf="submitted && subjectControl.errors?.['required']" class="text-sm text-red-600 mt-2">
+              Ingresa el asunto.
+            </p>
           </div>
 
           <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-2">Mensaje</label>
-            <textarea placeholder="Escribe tu mensaje aquí..." rows="5" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800 resize-none"></textarea>
+            <label for="message" class="text-sm font-semibold text-gray-700 mb-2">Mensaje</label>
+            <textarea
+              id="message"
+              name="message"
+              placeholder="Escribe tu mensaje aquí..."
+              rows="5"
+              required
+              [(ngModel)]="message"
+              #messageControl="ngModel"
+              class="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800 resize-none"
+              [class.border-red-500]="submitted && messageControl.invalid"
+              [class.border-gray-300]="!(submitted && messageControl.invalid)"
+            ></textarea>
+            <p *ngIf="submitted && messageControl.errors?.['required']" class="text-sm text-red-600 mt-2">
+              Ingresa tu mensaje.
+            </p>
           </div>
 
+          <p *ngIf="successMessage" class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm font-medium text-green-800">
+            {{ successMessage }}
+          </p>
+
+          <p *ngIf="errorMessage" class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-medium text-red-700">
+            {{ errorMessage }}
+          </p>
+
           <div class="flex justify-end pt-2">
-            <button type="button" class="px-8 py-3 bg-green-900 text-white font-bold rounded-xl hover:bg-green-800 transition-colors shadow-md transform hover:-translate-y-0.5 duration-200">
-              Enviar mensaje
+            <button
+              type="submit"
+              [disabled]="loading"
+              class="px-8 py-3 bg-green-900 text-white font-bold rounded-xl hover:bg-green-800 transition-colors shadow-md transform hover:-translate-y-0.5 duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {{ loading ? 'Enviando...' : 'Enviar mensaje' }}
             </button>
           </div>
         </form>
