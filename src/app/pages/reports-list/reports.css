@@ -147,25 +147,67 @@ h1 {
   gap: 0.5rem;
 }
 
-.photo-placeholder {
-  background: #ddd;
+.photo-container {
   height: 80px;
-  border-radius: 5px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #888;
-  font-size: 0.8rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.map-placeholder {
-  background: #E5F0FF;
-  height: 120px;
-  border-radius: 10px;
+.report-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.photo-container:hover .report-photo {
+  transform: scale(1.05);
+}
+
+.map-container {
+  position: relative;
+  height: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #333;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.report-map {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.3s ease;
+}
+
+.map-container:hover .report-map {
+  filter: brightness(0.9);
+}
+
+.map-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.5rem 1rem;
   display: flex;
-  justify-content: center;
   align-items: center;
-  color: #0066CC;
+  gap: 0.5rem;
+  border-top: 1px solid #333;
+  backdrop-filter: blur(4px);
+}
+
+.map-pin {
+  font-size: 1.1rem;
+}
+
+.map-address {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #333;
 }
 
 .status-timeline {

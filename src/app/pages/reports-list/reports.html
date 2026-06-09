@@ -79,14 +79,26 @@
         <div class="detail-section" *ngIf="!showDenegarForm">
           <p class="section-title">Foto</p>
           <div class="photos-grid">
-            <div class="photo-placeholder">IMG</div>
-            <div class="photo-placeholder">IMG</div>
-            <div class="photo-placeholder">IMG</div>
+            <div class="photo-container">
+              <img src="images/trash1.png" alt="Foto de reporte 1" class="report-photo">
+            </div>
+            <div class="photo-container">
+              <img src="images/trash2.png" alt="Foto de reporte 2" class="report-photo">
+            </div>
+            <div class="photo-container">
+              <img src="images/trash3.png" alt="Foto de reporte 3" class="report-photo">
+            </div>
           </div>
         </div>
         <div class="detail-section" *ngIf="!showDenegarForm">
           <p class="section-title">Ver ubicación</p>
-          <div class="map-placeholder"><p>Mapa de {{ selectedReport.lugar }}</p></div>
+          <div class="map-container">
+            <img src="images/map1.png" alt="Mapa de {{ selectedReport.lugar }}" class="report-map">
+            <div class="map-overlay">
+              <span class="map-pin">📍</span>
+              <span class="map-address">Mapa de {{ selectedReport.lugar }}</span>
+            </div>
+          </div>
         </div>
       </ng-container>
 
