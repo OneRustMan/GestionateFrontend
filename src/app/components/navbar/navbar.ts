@@ -11,6 +11,8 @@ import { filter } from 'rxjs/operators';
 })
 export class Navbar implements OnInit {
   isLoggedIn = false;
+  
+  currentUserRole: string = 'recepcionista';
 
   constructor(private router: Router) {}
 
@@ -25,7 +27,16 @@ export class Navbar implements OnInit {
   }
 
   checkLoginStatus(url: string) {
-    if (url.includes('/perfil') || url.includes('/home') || url.includes('/crear-reporte') || url.includes('/mis-reportes')) {
+    if (
+      url.includes('/perfil') || 
+      url.includes('/home') || 
+      url.includes('/crear-reporte') || 
+      url.includes('/mis-reportes') ||
+      url.includes('/reportes-recibidos') ||
+      url.includes('/reportes-derivados') ||
+      url.includes('/ordenes-asignadas') ||
+      url.includes('/ordenes-completadas')
+    ) {
       this.isLoggedIn = true;
     } else {
       this.isLoggedIn = false;
