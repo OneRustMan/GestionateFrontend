@@ -48,7 +48,8 @@
       </div>
 
       <div class="action-buttons">
-        <button class="btn-submit" (click)="onSubmit()" [disabled]="!description.trim() || !location.trim() || !selectedIncidentType">Enviar reporte</button>
+        <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
+        <button class="btn-submit" (click)="onSubmit()" [disabled]="isSubmitting || !description.trim() || !location.trim() || !selectedIncidentType">{{ isSubmitting ? "Enviando..." : "Enviar reporte" }}</button>
         <button class="btn-cancel" routerLink="/home">Cancelar</button>
       </div>
 
