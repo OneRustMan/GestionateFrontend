@@ -26,7 +26,12 @@ export const routes: Routes = [
       { path: 'perfil', component: Profile },
       { path: 'home', component: HomeComponent },
       { path: 'crear-reporte', component: CreateReportComponent },
-      { path: 'mis-reportes', component: ReportsComponent } 
+      // 👇 Todas las rutas de reportes apuntando al mismo componente "camaleón"
+      { path: 'mis-reportes', component: ReportsComponent },
+      { path: 'reportes-recibidos', component: ReportsComponent },
+      { path: 'reportes-derivados', component: ReportsComponent },
+      { path: 'ordenes-asignadas', component: ReportsComponent },
+      { path: 'ordenes-completadas', component: ReportsComponent }
     ]
   },
   {
