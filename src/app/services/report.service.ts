@@ -3,9 +3,9 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
-  CreateReportRequest,
   ReportDetail,
   ReportFilters,
+  ReportResponse,
   ReportSummary,
 } from '../models/report.models';
 
@@ -15,8 +15,8 @@ export class ReportService {
 
   constructor(private readonly http: HttpClient) {}
 
-  createReport(request: CreateReportRequest): Observable<ReportDetail> {
-    return this.http.post<ReportDetail>(`${this.apiUrl}/reports`, request);
+  createReport(formData: FormData): Observable<ReportResponse> {
+    return this.http.post<ReportResponse>(`${this.apiUrl}/reports`, formData);
   }
 
   getCitizenHistory(citizenId: number, filters: ReportFilters = {}): Observable<ReportSummary[]> {

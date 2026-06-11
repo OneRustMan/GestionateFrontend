@@ -327,3 +327,16 @@ textarea:focus {
   border: 1px solid #ccc;
   margin-top: 1rem;
 }
+
+.select-control { width: 100%; padding: 1rem; border-radius: 12px; border: 1px solid #E5E7EB; background: #fff; font: inherit; color: #333; }
+.select-control:focus { outline: none; border-color: #1D9A5B; }
+.field-hint { margin: 0.4rem 0 0; color: #555; font-size: 0.85rem; }
+.checkbox-custom { width: 20px; height: 20px; border: 1px solid #333; border-radius: 4px; margin-right: 1rem; position: relative; flex-shrink: 0; }
+.radio-label input:checked + .checkbox-custom::after { content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid #000; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.file-list { list-style: none; padding: 0; margin: 0.8rem 0 0; }
+.file-list li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px solid #E5E7EB; }
+.file-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-remove-file { border: 0; background: transparent; color: #8B1E1E; cursor: pointer; font-weight: 600; }
+.error-message { color: #8B1E1E; font-weight: 600; line-height: 1.4; margin: 0; }
+.map-selection-details { margin-top: 1rem; margin-bottom: 1rem; text-align: center; }
+.map-selection-details p { font-weight: bold; margin-bottom: 0; }
