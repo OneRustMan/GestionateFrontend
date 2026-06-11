@@ -7,6 +7,7 @@ import {
   ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
+  PasswordRecoveryResponse,
   RegisterCitizenRequest,
   RegisterCleaningOperationsStaffRequest,
   RegisterMunicipalReceptionistRequest,
@@ -45,12 +46,12 @@ export class AuthService {
     return this.http.post<unknown>(`${this.apiUrl}/auth/register/cleaning-staff`, request);
   }
 
-  forgotPassword(request: ForgotPasswordRequest): Observable<unknown> {
-    return this.http.post<unknown>(`${this.apiUrl}/auth/password/forgot`, request);
+  forgotPassword(request: ForgotPasswordRequest): Observable<PasswordRecoveryResponse> {
+    return this.http.post<PasswordRecoveryResponse>(`${this.apiUrl}/auth/password/forgot`, request);
   }
 
-  resetPassword(request: ResetPasswordRequest): Observable<unknown> {
-    return this.http.post<unknown>(`${this.apiUrl}/auth/password/reset`, request);
+  resetPassword(request: ResetPasswordRequest): Observable<PasswordRecoveryResponse> {
+    return this.http.post<PasswordRecoveryResponse>(`${this.apiUrl}/auth/password/reset`, request);
   }
 
   logout(): Observable<unknown> {
