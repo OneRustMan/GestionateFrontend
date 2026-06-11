@@ -6,6 +6,7 @@ import {
   AuthSession,
   ForgotPasswordRequest,
   LoginRequest,
+  LoginResponse,
   RegisterCitizenRequest,
   RegisterCleaningOperationsStaffRequest,
   RegisterMunicipalReceptionistRequest,
@@ -26,8 +27,8 @@ export class AuthService {
 
   constructor(private readonly http: HttpClient) {}
 
-  login(request: LoginRequest): Observable<AuthSession> {
-    return this.http.post<AuthSession>(`${this.apiUrl}/auth/login`, request).pipe(
+  login(request: LoginRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, request).pipe(
       tap((session) => this.saveSession(session)),
     );
   }
@@ -68,6 +69,22 @@ export class AuthService {
     return this.sessionState()?.token ?? localStorage.getItem('token');
   }
 
+  getRole(): UserRole | null {
+    return this.sessionState()?.role ?? null;
+  }
+
+  getProfileId(): number | null {
+    return this.sessionState()?.profileId ?? null;
+  }
+
+  getUserId(): number | null {
+    return this.sessionState()?.userId ?? null;
+  }
+
+  getCurrentUser(): AuthSession | null {
+    return this.sessionState();
+  }
+
   hasRole(allowedRoles: UserRole[]): boolean {
     const role = this.sessionState()?.role;
     return Boolean(role && allowedRoles.includes(role));
@@ -90,7 +107,7 @@ export class AuthService {
     return session?.role === role ? session.profileId : null;
   }
 
-  private saveSession(session: AuthSession): void {
+  private saveSession(session: LoginResponse): void {
     localStorage.setItem('token', session.token);
     localStorage.setItem('userId', String(session.userId));
     localStorage.setItem('profileId', String(session.profileId));

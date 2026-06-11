@@ -5,7 +5,7 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface AuthSession {
+export interface LoginResponse {
   token: string;
   userId: number;
   profileId: number;
@@ -13,6 +13,8 @@ export interface AuthSession {
   fullName: string;
   email: string;
 }
+
+export interface AuthSession extends LoginResponse {}
 
 export interface ForgotPasswordRequest {
   email: string;
