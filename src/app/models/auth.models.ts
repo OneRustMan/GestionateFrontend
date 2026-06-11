@@ -37,3 +37,55 @@ export interface RegisterRequest {
   address?: string;
   [key: string]: string | number | boolean | undefined;
 }
+
+export type MunicipalUnit = 'CITIZEN_SERVICE' | 'DOCUMENTARY_PROCESSING' | 'NEIGHBORHOOD_PLATFORM';
+
+export type Shift = 'MORNING' | 'AFTERNOON' | 'NIGHT';
+
+export interface RegisterCitizenRequest {
+  firstName: string;
+  lastName: string;
+  dni: string;
+  phone: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  districtId: number | null;
+  districtName: string | null;
+  province: string | null;
+  homeAddress: string;
+}
+
+export interface RegisterMunicipalReceptionistRequest {
+  firstName: string;
+  lastName: string;
+  dni: string;
+  phone: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  municipalityId: number | null;
+  municipalityName: string | null;
+  districtId: number | null;
+  districtName: string | null;
+  province: string | null;
+  municipalUnit: MunicipalUnit;
+  workerCode: string;
+}
+
+export interface RegisterCleaningOperationsStaffRequest {
+  firstName: string;
+  lastName: string;
+  dni: string;
+  phone: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  municipalityId: number | null;
+  municipalityName: string | null;
+  districtId: number | null;
+  districtName: string | null;
+  province: string | null;
+  workerCode: string;
+  shift: Shift;
+}
