@@ -32,12 +32,12 @@ export class Navbar {
   }
 
   logout(): void {
-    this.authService.logout().subscribe({
-      next: () => this.router.navigate(["/login"]),
-      error: () => {
-        this.authService.clearSession();
-        this.router.navigate(["/login"]);
-      },
-    });
+    const confirmed = window.confirm("¿Seguro que deseas cerrar sesión?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.authService.logout().subscribe(() => this.router.navigate(["/login"]));
   }
 }
