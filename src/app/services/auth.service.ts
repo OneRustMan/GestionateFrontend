@@ -85,6 +85,17 @@ export class AuthService {
     return this.sessionState();
   }
 
+  updateStoredProfile(fullName: string, email: string): void {
+    const currentSession = this.sessionState();
+
+    localStorage.setItem('fullName', fullName);
+    localStorage.setItem('email', email);
+
+    if (currentSession) {
+      this.sessionState.set({ ...currentSession, fullName, email });
+    }
+  }
+
   hasRole(allowedRoles: UserRole[]): boolean {
     const role = this.sessionState()?.role;
     return Boolean(role && allowedRoles.includes(role));
