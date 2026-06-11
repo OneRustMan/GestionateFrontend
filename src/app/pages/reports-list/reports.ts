@@ -41,6 +41,33 @@ export class ReportsComponent implements OnInit {
   reportsList: ViewItem[] = [];
   selectedReport: ViewItem | null = null;
 
+  currentPage = 1;
+  pageSize = 3;
+
+  get totalPages(): number {
+    return Math.ceil(this.reportsList.length / this.pageSize);
+  }
+
+  get paginatedReportsList(): ViewItem[] {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    return this.reportsList.slice(startIndex, startIndex + this.pageSize);
+  }
+
+  get pagesArray(): number[] {
+    const pages = [];
+    for (let i = 1; i <= this.totalPages; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  setPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.cdr.detectChanges();
+    }
+  }
+
   constructor(
     private readonly router: Router,
     private readonly authService: AuthService,
@@ -206,12 +233,14 @@ export class ReportsComponent implements OnInit {
 
   private finishLoad(items: ViewItem[]): void {
     this.reportsList = items;
+    this.currentPage = 1;
     this.isLoading = false;
     this.cdr.detectChanges();
   }
 
   private failLoad(message: string): void {
     this.reportsList = [];
+    this.currentPage = 1;
     this.errorMessage = message;
     this.isLoading = false;
     this.cdr.detectChanges();

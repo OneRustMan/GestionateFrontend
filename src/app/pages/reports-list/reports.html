@@ -43,7 +43,7 @@
     </aside>
 
     <section class="reports-list">
-      <ng-container *ngFor="let reporte of reportsList">
+      <ng-container *ngFor="let reporte of paginatedReportsList">
         <div class="report-card" 
              (click)="selectReport(reporte)"
              [class.active-card]="selectedReport === reporte"
@@ -61,6 +61,29 @@
           <div class="active-indicator" *ngIf="selectedReport === reporte">→</div>
         </div>
       </ng-container>
+
+      <!-- Paginación -->
+      <div class="pagination-container" *ngIf="totalPages > 1">
+        <button 
+          class="pagination-arrow" 
+          [disabled]="currentPage === 1" 
+          (click)="setPage(currentPage - 1)">
+          ‹
+        </button>
+        <button 
+          *ngFor="let page of pagesArray" 
+          class="pagination-number" 
+          [class.active-page]="currentPage === page" 
+          (click)="setPage(page)">
+          {{ page }}
+        </button>
+        <button 
+          class="pagination-arrow" 
+          [disabled]="currentPage === totalPages" 
+          (click)="setPage(currentPage + 1)">
+          ›
+        </button>
+      </div>
     </section>
 
     <section class="report-details" *ngIf="!selectedReport" style="display: flex; align-items: center; justify-content: center; text-align: center; border: 2px dashed #ccc;">
