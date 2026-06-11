@@ -27,6 +27,10 @@ export interface ResetPasswordRequest {
   confirmPassword: string;
 }
 
+export interface PasswordRecoveryResponse {
+  message: string;
+}
+
 export interface RegisterRequest {
   firstName?: string;
   lastName?: string;
