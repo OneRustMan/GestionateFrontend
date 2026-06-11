@@ -18,6 +18,8 @@ interface ViewItem {
   fecha: string;
   estado: string;
   description: string;
+  createdAt?: string;
+  priority?: string;
 }
 
 @Component({
@@ -44,13 +46,80 @@ export class ReportsComponent implements OnInit {
   currentPage = 1;
   pageSize = 3;
 
+  selectedOrder = "recent";
+  selectedStatus = "all";
+  selectedPriority = "all";
+  searchTerm = "";
+
+  get filteredReportsList(): ViewItem[] {
+    let list = [...this.reportsList];
+
+    // 1. Búsqueda por texto
+    if (this.searchTerm.trim() !== "") {
+      const term = this.searchTerm.toLowerCase().trim();
+      list = list.filter(item => 
+        item.id.toLowerCase().includes(term) ||
+        item.tipo.toLowerCase().includes(term) ||
+        item.lugar.toLowerCase().includes(term) ||
+        item.description.toLowerCase().includes(term)
+      );
+    }
+
+    // 2. Filtrar por estado
+    if (this.currentUserRole === "ciudadano" && this.selectedStatus !== "all") {
+      list = list.filter(item => {
+        if (this.selectedStatus === "Recibido") {
+          return item.estado === "Recibido" || item.estado === "Pendiente de Recepción";
+        }
+        if (this.selectedStatus === "Derivado") {
+          return item.estado === "Derivado" || item.estado === "En Proceso";
+        }
+        if (this.selectedStatus === "Completado") {
+          return item.estado === "Completado";
+        }
+        return true;
+      });
+    } else if (this.currentUserRole === "recepcionista" && this.selectedStatus !== "all") {
+      list = list.filter(item => {
+        if (this.selectedStatus === "Recibido") {
+          return item.estado === "Recibido" || item.estado === "Pendiente de Recepción";
+        }
+        return true;
+      });
+    }
+
+    // 3. Filtrar por prioridad
+    if (this.currentUserRole === "operativo" && this.selectedPriority !== "all") {
+      list = list.filter(item => {
+        const itemPriority = item.priority || "";
+        const targetPriority = this.selectedPriority === "Alta" ? "HIGH" :
+                               this.selectedPriority === "Media" ? "MEDIUM" :
+                               this.selectedPriority === "Baja" ? "LOW" : "";
+        return itemPriority.toUpperCase() === targetPriority;
+      });
+    }
+
+    // 4. Ordenar por fecha
+    list.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (this.selectedOrder === "recent") {
+        return dateB - dateA;
+      } else {
+        return dateA - dateB;
+      }
+    });
+
+    return list;
+  }
+
   get totalPages(): number {
-    return Math.ceil(this.reportsList.length / this.pageSize);
+    return Math.ceil(this.filteredReportsList.length / this.pageSize);
   }
 
   get paginatedReportsList(): ViewItem[] {
     const startIndex = (this.currentPage - 1) * this.pageSize;
-    return this.reportsList.slice(startIndex, startIndex + this.pageSize);
+    return this.filteredReportsList.slice(startIndex, startIndex + this.pageSize);
   }
 
   get pagesArray(): number[] {
@@ -66,6 +135,44 @@ export class ReportsComponent implements OnInit {
       this.currentPage = page;
       this.cdr.detectChanges();
     }
+  }
+
+  private verifySelectedReport() {
+    if (this.selectedReport) {
+      const stillExists = this.filteredReportsList.some(item => item.numericId === this.selectedReport!.numericId);
+      if (!stillExists) {
+        this.selectedReport = null;
+      }
+    }
+  }
+
+  changeOrder(order: string) {
+    this.selectedOrder = order;
+    this.currentPage = 1;
+    this.verifySelectedReport();
+    this.cdr.detectChanges();
+  }
+
+  changeStatus(status: string) {
+    this.selectedStatus = status;
+    this.currentPage = 1;
+    this.verifySelectedReport();
+    this.cdr.detectChanges();
+  }
+
+  changePriority(priority: string) {
+    this.selectedPriority = priority;
+    this.currentPage = 1;
+    this.verifySelectedReport();
+    this.cdr.detectChanges();
+  }
+
+  onSearch(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.searchTerm = input.value;
+    this.currentPage = 1;
+    this.verifySelectedReport();
+    this.cdr.detectChanges();
   }
 
   constructor(
@@ -255,6 +362,7 @@ export class ReportsComponent implements OnInit {
       fecha: this.formatDate(report.createdAt),
       estado: this.mapStatus(report.status),
       description: report.description,
+      createdAt: report.createdAt,
     };
   }
 
@@ -267,6 +375,8 @@ export class ReportsComponent implements OnInit {
       fecha: this.formatDate(order.createdAt),
       estado: this.mapStatus(order.status),
       description: "Orden asociada al reporte #" + order.reportId,
+      createdAt: order.createdAt,
+      priority: String(order.priority),
     };
   }
 
