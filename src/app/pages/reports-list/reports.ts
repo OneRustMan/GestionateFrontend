@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { Component, DestroyRef, OnInit, inject, ChangeDetectorRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, NavigationEnd } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -29,6 +29,7 @@ interface ViewItem {
 })
 export class ReportsComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   currentUserRole = "ciudadano";
   currentView = "ciudadano-mis-reportes";
@@ -98,8 +99,12 @@ export class ReportsComponent implements OnInit {
         if (this.selectedReport) {
           this.selectedReport.estado = "Derivado";
         }
+        this.cdr.detectChanges();
       },
-      error: () => this.errorMessage = "No se pudo derivar el reporte.",
+      error: () => {
+        this.errorMessage = "No se pudo derivar el reporte.";
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -125,8 +130,12 @@ export class ReportsComponent implements OnInit {
           this.selectedReport.estado = "En Proceso";
         }
         this.showCoordinarForm = false;
+        this.cdr.detectChanges();
       },
-      error: () => this.errorMessage = "No se pudo tomar la orden.",
+      error: () => {
+        this.errorMessage = "No se pudo tomar la orden.";
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -141,14 +150,19 @@ export class ReportsComponent implements OnInit {
         if (this.selectedReport) {
           this.selectedReport.estado = "Completado";
         }
+        this.cdr.detectChanges();
       },
-      error: () => this.errorMessage = "No se pudo completar la orden.",
+      error: () => {
+        this.errorMessage = "No se pudo completar la orden.";
+        this.cdr.detectChanges();
+      },
     });
   }
 
   private loadItems(): void {
     this.isLoading = true;
     this.errorMessage = "";
+    this.cdr.detectChanges();
 
     if (this.currentUserRole === "ciudadano") {
       const citizenId = this.authService.getCitizenId();
@@ -193,12 +207,14 @@ export class ReportsComponent implements OnInit {
   private finishLoad(items: ViewItem[]): void {
     this.reportsList = items;
     this.isLoading = false;
+    this.cdr.detectChanges();
   }
 
   private failLoad(message: string): void {
     this.reportsList = [];
     this.errorMessage = message;
     this.isLoading = false;
+    this.cdr.detectChanges();
   }
 
   private mapReport(report: ReportSummary): ViewItem {
