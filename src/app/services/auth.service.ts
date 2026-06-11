@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, finalize, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   AuthSession,
@@ -54,8 +54,14 @@ export class AuthService {
   }
 
   logout(): Observable<unknown> {
+    if (!this.getToken()) {
+      this.clearSession();
+      return of(null);
+    }
+
     return this.http.post<unknown>(`${this.apiUrl}/session/logout`, {}).pipe(
-      tap(() => this.clearSession()),
+      catchError(() => of(null)),
+      finalize(() => this.clearSession()),
     );
   }
 
