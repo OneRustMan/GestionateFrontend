@@ -6,7 +6,9 @@ import {
   AuthSession,
   ForgotPasswordRequest,
   LoginRequest,
-  RegisterRequest,
+  RegisterCitizenRequest,
+  RegisterCleaningOperationsStaffRequest,
+  RegisterMunicipalReceptionistRequest,
   ResetPasswordRequest,
   UserRole,
 } from '../models/auth.models';
@@ -30,15 +32,15 @@ export class AuthService {
     );
   }
 
-  registerCitizen(request: RegisterRequest): Observable<unknown> {
+  registerCitizen(request: RegisterCitizenRequest): Observable<unknown> {
     return this.http.post<unknown>(`${this.apiUrl}/auth/register/citizen`, request);
   }
 
-  registerReceptionist(request: RegisterRequest): Observable<unknown> {
+  registerReceptionist(request: RegisterMunicipalReceptionistRequest): Observable<unknown> {
     return this.http.post<unknown>(`${this.apiUrl}/auth/register/receptionist`, request);
   }
 
-  registerCleaningStaff(request: RegisterRequest): Observable<unknown> {
+  registerCleaningStaff(request: RegisterCleaningOperationsStaffRequest): Observable<unknown> {
     return this.http.post<unknown>(`${this.apiUrl}/auth/register/cleaning-staff`, request);
   }
 
