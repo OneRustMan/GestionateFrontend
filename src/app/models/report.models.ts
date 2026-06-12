@@ -21,11 +21,13 @@ export interface EvidenceResponse {
 }
 
 export interface LocationResponse {
-  addressReference?: string;
-  latitude?: number;
-  longitude?: number;
-  districtName?: string;
-  province?: string;
+  id?: number;
+  reportId?: number;
+  addressReference: string;
+  districtName: string;
+  province: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface ReportResponse {
@@ -49,12 +51,8 @@ export interface ReportSummary {
   status: ReportStatus;
   createdAt?: string;
   updatedAt?: string;
-  incidentTypes?: string[] | IncidentTypeRes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ponse[];
-  [key: string]: string | number | boolean | string[] | IncidentTypeResponse[] | EvidenceRequest[] | LocationResponse | null | undefined;
-}
-
-export interface ReportDetail extends ReportSummary {
-  evidences?: EvidenceRequest[];
+  incidentTypes?: string[] | IncidentTypeResponse[];
+  [key: string]: string | number | boolean | string[] | IncidentTypeResponse[] | EvidenceRequest[] | EvidenceResponse[] | LocationResponse | null | undefined;
 }
 
 export interface ReportFilters {

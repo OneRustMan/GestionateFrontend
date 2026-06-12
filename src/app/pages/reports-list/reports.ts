@@ -8,7 +8,7 @@ import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
-import { IncidentTypeResponse, LocationResponse, ReportResponse, ReportSummary } from "../../models/report.models";
+import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReportResponse, ReportSummary } from "../../models/report.models";
 import { WorkOrderSummary } from "../../models/work-order.models";
 
 interface ViewItem {
@@ -22,8 +22,6 @@ interface ViewItem {
   createdAt?: string;
   priority?: string;
 }
-
-type ReportDisplaySource = Pick<ReportSummary | ReportResponse, "incidentTypes" | "location">;
 
 @Component({
   selector: "app-reports",
@@ -425,7 +423,7 @@ export class ReportsComponent implements OnInit {
       numericId: report.id,
       id: report.reportCode || "#" + report.id,
       tipo: this.getIncidentTypesLabel(report),
-      lugar: this.getLocationLabel(report.location),
+      lugar: this.getLocationLabel(report),
       fecha: this.formatDate(report.createdAt),
       estado: this.getStatusLabel(report.status),
       description: report.description || "-",
@@ -443,16 +441,16 @@ export class ReportsComponent implements OnInit {
     return statusMap[this.selectedStatus];
   }
 
-  private getIncidentTypesLabel(report: ReportResponse | ReportSummary): string {
+  getIncidentTypesLabel(report: ReportResponse | ReportSummary): string {
     const incidentTypes = report.incidentTypes || [];
     const labels = incidentTypes
       .map((type) => this.getIncidentTypeLabel(type))
       .filter((label) => label.length > 0);
 
-    return labels.length > 0 ? labels.join(", ") : "Incidente";
+    return labels.length > 0 ? labels.join(", ") : "Sin tipo de incidencia";
   }
 
-  private getIncidentTypeLabel(type: string | IncidentTypeResponse): string {
+  getIncidentTypeLabel(type: string | IncidentTypeResponse): string {
     const name = typeof type === "string" ? type : type.name;
     const typeMap: Record<string, string> = {
       RESIDUOS_ORGANICOS: "Residuos orgánicos",
@@ -467,15 +465,47 @@ export class ReportsComponent implements OnInit {
     return typeMap[name] || name || "";
   }
 
-  private getLocationLabel(location: string | LocationResponse | null | undefined): string {
-    if (!location) return "-";
-    if (typeof location === "string") return location;
+  getLocationLabel(report: ReportResponse | ReportSummary): string {
+    return this.formatLocation(report.location);
+  }
+
+  getLocationText(location: LocationResponse | null): string {
+    return this.formatLocation(location);
+  }
+
+  getEvidenceUrl(evidence: EvidenceResponse): string | null {
+    return evidence.fileUrl || null;
+  }
+
+  getEvidenceLabel(evidence: EvidenceResponse): string {
+    return "Evidencia " + evidence.id;
+  }
+
+  isStatusStepActive(status: string, step: "RECEIVED" | "DERIVED" | "ORDER_COMPLETED"): boolean {
+    const statusOrder: Record<string, number> = {
+      RECEIVED: 1,
+      DERIVED: 2,
+      ORDER_COMPLETED: 3,
+    };
+
+    return (statusOrder[status] || 0) >= statusOrder[step];
+  }
+
+  clearReportDetail(): void {
+    this.selectedReportDetail = null;
+    this.detailLoading = false;
+    this.detailError = "";
+  }
+
+  private formatLocation(location: string | LocationResponse | null | undefined): string {
+    if (!location) return "Ubicación no disponible";
+    if (typeof location === "string") return location || "Ubicación no disponible";
 
     const address = location.addressReference || "";
     const area = [location.districtName, location.province].filter(Boolean).join(", ");
 
-    if (address && area) return `${address} - ${area}`;
-    return address || area || "-";
+    if (address && area) return address + " - " + area;
+    return address || area || "Ubicación no disponible";
   }
 
   private mapWorkOrder(order: WorkOrderSummary): ViewItem {
@@ -502,7 +532,7 @@ export class ReportsComponent implements OnInit {
     this.failLoad("No se pudo cargar el historial de reportes.");
   }
 
-  private getStatusLabel(status: string): string {
+  getStatusLabel(status: string): string {
     return this.mapStatus(status);
   }
 
