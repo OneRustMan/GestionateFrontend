@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { ReceptionReportInboxResponse, ReportResponse } from '../models/report.models';
+import { ReceptionReportDetailResponse, ReceptionReportInboxResponse } from '../models/report.models';
 import { DeriveReportRequest, WorkOrderDetail } from '../models/work-order.models';
 
 @Injectable({ providedIn: 'root' })
@@ -19,9 +19,9 @@ export class ReceptionService {
     return this.http.get<ReceptionReportInboxResponse[]>(`${this.apiUrl}/reception/reports/inbox`, { params });
   }
 
-  getReportDetail(reportId: number, receptionistId: number): Observable<ReportResponse> {
+  getReportDetail(receptionistId: number, reportId: number): Observable<ReceptionReportDetailResponse> {
     const params = new HttpParams().set('receptionistId', receptionistId);
-    return this.http.get<ReportResponse>(`${this.apiUrl}/reception/reports/${reportId}/detail`, { params });
+    return this.http.get<ReceptionReportDetailResponse>(`${this.apiUrl}/reception/reports/${reportId}/detail`, { params });
   }
 
   deriveReport(

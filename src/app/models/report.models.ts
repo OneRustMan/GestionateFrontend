@@ -55,6 +55,23 @@ export interface ReceptionReportInboxResponse {
   createdAt: string;
 }
 
+export interface ReceptionReportDetailResponse {
+  reportId: number;
+  reportCode: string;
+  description: string;
+  status: ReportStatus;
+  createdAt: string;
+  updatedAt: string;
+  citizenId: number;
+  citizenFullName: string;
+  citizenDni: string;
+  citizenPhone: string;
+  citizenEmail: string;
+  incidentTypes: IncidentTypeResponse[];
+  location: LocationResponse | null;
+  evidences: EvidenceResponse[];
+}
+
 export interface ReportSummary {
   id: number;
   reportCode: string;
