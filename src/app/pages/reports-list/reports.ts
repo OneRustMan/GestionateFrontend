@@ -8,7 +8,7 @@ import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
-import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReceptionReportInboxResponse, ReportResponse, ReportSummary } from "../../models/report.models";
+import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReceptionReportDetailResponse, ReceptionReportInboxResponse, ReportResponse, ReportSummary } from "../../models/report.models";
 import { WorkOrderSummary } from "../../models/work-order.models";
 
 interface ViewItem {
@@ -45,6 +45,7 @@ export class ReportsComponent implements OnInit {
   reportsList: ViewItem[] = [];
   selectedReport: ViewItem | null = null;
   selectedReportDetail: ReportResponse | null = null;
+  selectedReceptionReportDetail: ReceptionReportDetailResponse | null = null;
   detailLoading = false;
   detailError = "";
 
@@ -241,6 +242,11 @@ export class ReportsComponent implements OnInit {
 
     if (this.currentView === "ciudadano-mis-reportes") {
       this.loadCitizenReportDetail(report);
+      return;
+    }
+
+    if (this.currentView === "recepcionista-recibidos") {
+      this.loadReceptionReportDetail(report);
     }
   }
 
@@ -276,6 +282,50 @@ export class ReportsComponent implements OnInit {
 
         if (error.status === 404) {
           this.detailError = "Reporte no encontrado.";
+        } else if (error.status === 401 || error.status === 403) {
+          this.authService.clearSession();
+          void this.router.navigate(["/login"]);
+        } else {
+          this.detailError = "No se pudo cargar el detalle del reporte.";
+        }
+
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private loadReceptionReportDetail(report: ViewItem): void {
+    const receptionistId = this.authService.getProfileId();
+
+    if (this.authService.getRole() !== "MUNICIPAL_RECEPTIONIST" || !receptionistId) {
+      void this.router.navigate(["/home"]);
+      return;
+    }
+
+    if (!report.numericId) {
+      this.detailError = "El reporte ya no está disponible";
+      return;
+    }
+
+    const selectedReportId = report.numericId;
+    this.detailLoading = true;
+    this.detailError = "";
+
+    this.receptionService.getReportDetail(receptionistId, selectedReportId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (detail) => {
+        if (this.selectedReport?.numericId !== selectedReportId) return;
+        this.selectedReceptionReportDetail = detail;
+        this.detailLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error: HttpErrorResponse) => {
+        if (this.selectedReport?.numericId !== selectedReportId) return;
+        this.detailLoading = false;
+
+        if (error.status === 404) {
+          this.detailError = "El reporte ya no está disponible";
         } else if (error.status === 401 || error.status === 403) {
           this.authService.clearSession();
           void this.router.navigate(["/login"]);
@@ -463,7 +513,7 @@ export class ReportsComponent implements OnInit {
     return statusMap[this.selectedStatus];
   }
 
-  getIncidentTypesLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse): string {
+  getIncidentTypesLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse): string {
     const incidentTypes = report.incidentTypes || [];
     const labels = incidentTypes
       .map((type) => this.getIncidentTypeLabel(type))
@@ -487,7 +537,7 @@ export class ReportsComponent implements OnInit {
     return typeMap[name] || name || "";
   }
 
-  getLocationLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse): string {
+  getLocationLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse): string {
     return this.formatLocation(report.location);
   }
 
@@ -515,6 +565,7 @@ export class ReportsComponent implements OnInit {
 
   clearReportDetail(): void {
     this.selectedReportDetail = null;
+    this.selectedReceptionReportDetail = null;
     this.detailLoading = false;
     this.detailError = "";
   }
