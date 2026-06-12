@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ReceptionReportDetailResponse, ReceptionReportInboxResponse } from '../models/report.models';
-import { DeriveReportRequest, WorkOrderDetail } from '../models/work-order.models';
+import { DeriveReportRequest, DeriveReportResponse } from '../models/work-order.models';
 
 @Injectable({ providedIn: 'root' })
 export class ReceptionService {
@@ -33,12 +33,12 @@ export class ReceptionService {
   }
 
   deriveReport(
-    reportId: number,
     receptionistId: number,
+    reportId: number,
     request: DeriveReportRequest,
-  ): Observable<WorkOrderDetail> {
+  ): Observable<DeriveReportResponse> {
     const params = new HttpParams().set('receptionistId', receptionistId);
-    return this.http.patch<WorkOrderDetail>(
+    return this.http.post<DeriveReportResponse>(
       `${this.apiUrl}/reception/reports/${reportId}/derive`,
       request,
       { params },

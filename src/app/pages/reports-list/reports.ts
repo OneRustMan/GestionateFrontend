@@ -3,14 +3,14 @@ import { HttpErrorResponse } from "@angular/common/http";
 import { CommonModule } from "@angular/common";
 import { Router, NavigationEnd } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { filter } from "rxjs/operators";
+import { filter, finalize } from "rxjs/operators";
 import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
 import { IncidentTypeService } from "../../services/incident-type.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
 import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReceptionReportDetailResponse, ReceptionReportInboxResponse, ReportResponse, ReportSummary } from "../../models/report.models";
-import { WorkOrderSummary } from "../../models/work-order.models";
+import { WorkOrderPriority, WorkOrderSummary } from "../../models/work-order.models";
 
 interface ViewItem {
   numericId: number;
@@ -57,7 +57,11 @@ export class ReportsComponent implements OnInit {
   selectedStatus = "all";
   selectedIncidentTypeId: number | null = null;
   incidentTypes: IncidentTypeResponse[] = [];
-  selectedPriority = "all";
+  selectedPriorityFilter = "all";
+  selectedPriority: WorkOrderPriority | "" = "";
+  deriveLoading = false;
+  deriveError = "";
+  deriveSuccess = "";
   searchTerm = "";
 
   get filteredReportsList(): ViewItem[] {
@@ -93,12 +97,12 @@ export class ReportsComponent implements OnInit {
     }
 
     // 3. Filtrar por prioridad
-    if (this.currentUserRole === "operativo" && this.selectedPriority !== "all") {
+    if (this.currentUserRole === "operativo" && this.selectedPriorityFilter !== "all") {
       list = list.filter(item => {
         const itemPriority = item.priority || "";
-        const targetPriority = this.selectedPriority === "Alta" ? "HIGH" :
-                               this.selectedPriority === "Media" ? "MEDIUM" :
-                               this.selectedPriority === "Baja" ? "LOW" : "";
+        const targetPriority = this.selectedPriorityFilter === "Alta" ? "HIGH" :
+                               this.selectedPriorityFilter === "Media" ? "MEDIUM" :
+                               this.selectedPriorityFilter === "Baja" ? "LOW" : "";
         return itemPriority.toUpperCase() === targetPriority;
       });
     }
@@ -147,6 +151,7 @@ export class ReportsComponent implements OnInit {
       if (!stillExists) {
         this.selectedReport = null;
         this.clearReportDetail();
+        this.clearDeriveState();
       }
     }
   }
@@ -176,11 +181,12 @@ export class ReportsComponent implements OnInit {
     this.currentPage = 1;
     this.selectedReport = null;
     this.clearReportDetail();
+    this.clearDeriveState();
     this.loadItems();
   }
 
   changePriority(priority: string) {
-    this.selectedPriority = priority;
+    this.selectedPriorityFilter = priority;
     this.currentPage = 1;
     this.verifySelectedReport();
     this.cdr.detectChanges();
@@ -191,6 +197,9 @@ export class ReportsComponent implements OnInit {
     this.searchTerm = input.value;
     this.currentPage = 1;
     this.verifySelectedReport();
+    if (!this.selectedReport) {
+      this.clearDeriveState();
+    }
     this.cdr.detectChanges();
   }
 
@@ -216,6 +225,7 @@ export class ReportsComponent implements OnInit {
   determinarRolPorUrl(url: string) {
     this.selectedReport = null;
     this.clearReportDetail();
+    this.clearDeriveState();
     this.showCoordinarForm = false;
     this.showDenegarForm = false;
 
@@ -248,6 +258,7 @@ export class ReportsComponent implements OnInit {
     this.showCoordinarForm = false;
     this.showDenegarForm = false;
     this.clearReportDetail();
+    this.clearDeriveState();
 
     if (this.currentView === "ciudadano-mis-reportes") {
       this.loadCitizenReportDetail(report);
@@ -347,22 +358,83 @@ export class ReportsComponent implements OnInit {
     });
   }
 
-  derivar() {
-    const receptionistId = this.authService.getReceptionistId();
-    if (!this.selectedReport || !receptionistId) return;
+  get canShowDeriveSection(): boolean {
+    return this.currentView === "recepcionista-recibidos"
+      && this.selectedReceptionReportDetail?.status === "RECEIVED";
+  }
 
-    this.receptionService.deriveReport(this.selectedReport.numericId, receptionistId, { priority: "MEDIUM" }).subscribe({
-      next: () => {
-        if (this.selectedReport) {
-          this.selectedReport.estado = "Derivado";
-        }
+  onDerivePriorityChange(priority: WorkOrderPriority): void {
+    this.selectedPriority = priority;
+    this.deriveError = "";
+    this.deriveSuccess = "";
+  }
+
+  derivar(): void {
+    this.deriveError = "";
+    this.deriveSuccess = "";
+
+    if (!this.selectedPriority) {
+      this.deriveError = "Selecciona una prioridad para continuar";
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const receptionistId = this.authService.getProfileId();
+    const reportId = this.selectedReceptionReportDetail?.reportId ?? this.selectedReport?.numericId;
+
+    if (this.authService.getRole() !== "MUNICIPAL_RECEPTIONIST" || !receptionistId || !reportId || !this.canShowDeriveSection) {
+      return;
+    }
+
+    this.deriveLoading = true;
+
+    this.receptionService.deriveReport(receptionistId, reportId, { priority: this.selectedPriority }).pipe(
+      finalize(() => {
+        this.deriveLoading = false;
         this.cdr.detectChanges();
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.deriveSuccess = "Reporte derivado correctamente";
+        this.selectedReport = null;
+        this.selectedPriority = "";
+        this.clearReportDetail();
+        this.loadItems();
       },
-      error: () => {
-        this.errorMessage = "No se pudo derivar el reporte.";
+      error: (error: HttpErrorResponse) => {
+        this.deriveError = this.getDeriveErrorMessage(error);
         this.cdr.detectChanges();
       },
     });
+  }
+
+  private getDeriveErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 404) {
+      return "El reporte ya no está disponible";
+    }
+
+    if (error.status === 400) {
+      const message = this.getBackendErrorText(error).toLowerCase();
+      if (message.includes("prior")) {
+        return "Selecciona una prioridad para continuar";
+      }
+      return "El reporte ya fue derivado";
+    }
+
+    return "No se pudo derivar el reporte. Inténtalo nuevamente.";
+  }
+
+  private getBackendErrorText(error: HttpErrorResponse): string {
+    if (typeof error.error === "string") {
+      return error.error;
+    }
+
+    try {
+      return JSON.stringify(error.error ?? "");
+    } catch {
+      return [error.error?.message, error.error?.error].filter(Boolean).join(" ");
+    }
   }
 
   abrirFormularioDenegar() {
@@ -570,6 +642,15 @@ export class ReportsComponent implements OnInit {
     };
 
     return (statusOrder[status] || 0) >= statusOrder[step];
+  }
+
+  private clearDeriveState(clearSuccess = true): void {
+    this.selectedPriority = "";
+    this.deriveLoading = false;
+    this.deriveError = "";
+    if (clearSuccess) {
+      this.deriveSuccess = "";
+    }
   }
 
   clearReportDetail(): void {
