@@ -6,7 +6,9 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
 import { ReportService } from "../../services/report.service";
+import { WorkOrderService } from "../../services/work-order.service";
 import { LocationResponse, ReceptionReportInboxResponse, ReportResponse } from "../../models/report.models";
+import { WorkOrderSummary } from "../../models/work-order.models";
 
 interface RecentReportItem {
   reportCode: string;
@@ -33,6 +35,7 @@ export class HomeComponent implements OnInit {
     private readonly authService: AuthService,
     private readonly reportService: ReportService,
     private readonly receptionService: ReceptionService,
+    private readonly workOrderService: WorkOrderService,
     private readonly router: Router
   ) { }
 
@@ -40,27 +43,37 @@ export class HomeComponent implements OnInit {
     return this.authService.getRole() === "MUNICIPAL_RECEPTIONIST";
   }
 
+  get isCleaningOperations(): boolean {
+    return this.authService.getRole() === "CLEANING_OPERATIONS";
+  }
+
   get primaryActionLabel(): string {
+    if (this.isCleaningOperations) return "Órdenes asignadas";
     return this.isReceptionist ? "Reportes recibidos" : "Crear Reporte";
   }
 
   get primaryActionLink(): string {
+    if (this.isCleaningOperations) return "/ordenes-asignadas";
     return this.isReceptionist ? "/reportes-recibidos" : "/crear-reporte";
   }
 
   get reportsTitle(): string {
+    if (this.isCleaningOperations) return "Tus últimas órdenes asignadas";
     return this.isReceptionist ? "Últimos reportes recibidos" : "Tus últimos reportes";
   }
 
   get emptyMessage(): string {
+    if (this.isCleaningOperations) return "No tienes órdenes asignadas actualmente.";
     return this.isReceptionist ? "No hay reportes pendientes" : "No tienes reportes registrados actualmente.";
   }
 
   get finalLinkLabel(): string {
+    if (this.isCleaningOperations) return "Ver todas mis órdenes";
     return this.isReceptionist ? "Ver mis reportes recibidos" : "Ver todos mis reportes";
   }
 
   get finalLinkRoute(): string {
+    if (this.isCleaningOperations) return "/ordenes-asignadas";
     return this.isReceptionist ? "/reportes-recibidos" : "/mis-reportes";
   }
 
@@ -81,12 +94,61 @@ export class HomeComponent implements OnInit {
       return;
     }
 
+    if (this.isCleaningOperations) {
+      this.loadCleaningRecentOrders();
+      return;
+    }
+
     if (this.isReceptionist) {
       this.loadReceptionRecentReports();
       return;
     }
 
     this.loadCitizenRecentReports();
+  }
+
+  private loadCleaningRecentOrders(): void {
+    const cleaningStaffId = this.authService.getCleaningStaffId();
+    if (!cleaningStaffId) {
+      this.recentReports = [];
+      this.isLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.startLoading();
+
+    this.workOrderService.getAvailable(cleaningStaffId).pipe(
+      finalize(() => this.stopLoading())
+    ).subscribe({
+      next: (orders) => {
+        this.recentReports = Array.isArray(orders)
+          ? orders.slice(0, 2).map((order) => this.mapWorkOrderToRecentReport(order))
+          : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.errorMessage = "No se pudieron cargar las órdenes recientes.";
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private mapWorkOrderToRecentReport(order: WorkOrderSummary): RecentReportItem {
+    return {
+      reportCode: "#" + order.id,
+      description: "Orden de trabajo con prioridad " + this.translatePriority(String(order.priority)) + ". Asociada al reporte #" + order.reportId,
+      location: "Orden de trabajo",
+    };
+  }
+
+  private translatePriority(priority: string): string {
+    const priorityMap: Record<string, string> = {
+      LOW: "Baja",
+      MEDIUM: "Media",
+      HIGH: "Alta",
+    };
+    return priorityMap[priority.toUpperCase()] || priority;
   }
 
   private loadCitizenRecentReports(): void {
@@ -176,6 +238,9 @@ export class HomeComponent implements OnInit {
   }
 
   getReportTitle(report: RecentReportItem): string {
+    if (this.isCleaningOperations) {
+      return "Orden " + report.reportCode;
+    }
     return "Reporte " + report.reportCode;
   }
 

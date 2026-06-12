@@ -5,8 +5,9 @@
     
     <div class="action-buttons">
       <button class="btn-primary" [routerLink]="primaryActionLink">{{ primaryActionLabel }}</button>
-      <a class="link-secondary" [routerLink]="finalLinkRoute">{{ finalLinkLabel }}</a>
+      <a *ngIf="!isCleaningOperations" class="link-secondary" [routerLink]="finalLinkRoute">{{ finalLinkLabel }}</a>
       <a *ngIf="isReceptionist" class="link-secondary" routerLink="/reportes-derivados">Reportes derivados</a>
+      <a *ngIf="isCleaningOperations" class="link-secondary" routerLink="/ordenes-completadas">Órdenes completadas</a>
     </div>
   </section>
 

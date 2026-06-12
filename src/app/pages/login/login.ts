@@ -54,7 +54,7 @@ export class Login {
     const redirects: Record<UserRole, string> = {
       CITIZEN: "/home",
       MUNICIPAL_RECEPTIONIST: "/reportes-recibidos",
-      CLEANING_OPERATIONS: "/ordenes-asignadas",
+      CLEANING_OPERATIONS: "/home",
     };
 
     return redirects[role];

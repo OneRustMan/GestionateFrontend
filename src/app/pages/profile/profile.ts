@@ -321,7 +321,7 @@ export class Profile implements OnInit {
     const role = this.originalProfile?.role ?? this.authService.getRole();
 
     if (role === 'MUNICIPAL_RECEPTIONIST') return '/reportes-recibidos';
-    if (role === 'CLEANING_OPERATIONS') return '/ordenes-asignadas';
+    if (role === 'CLEANING_OPERATIONS') return '/home';
 
     return '/home';
   }
