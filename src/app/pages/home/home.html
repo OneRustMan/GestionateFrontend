@@ -14,12 +14,27 @@
 
     <div class="reports-content">
       <div class="reports-card">
-        <ng-container *ngFor="let report of recentReports; let last = last">
-          <div class="report-item">
-            <h3>{{ report.title }}</h3>
-            <p>{{ report.description }}</p>
-          </div>
-          <hr *ngIf="!last" class="divider">
+        <div *ngIf="isLoading" class="loading-state">
+          <p>Cargando tus últimos reportes...</p>
+        </div>
+
+        <div *ngIf="errorMessage && !isLoading" class="error-state">
+          <p>{{ errorMessage }}</p>
+        </div>
+
+        <div *ngIf="!isLoading && !errorMessage && recentReports.length === 0" class="no-reports">
+          No tienes reportes registrados actualmente.
+        </div>
+
+        <ng-container *ngIf="!isLoading && !errorMessage && recentReports.length > 0">
+          <ng-container *ngFor="let report of recentReports; let last = last">
+            <div class="report-item">
+              <h3>{{ getReportTitle(report) }}</h3>
+              <p class="report-desc">{{ truncateDescription(report.description) }}</p>
+              <p class="report-loc"><strong>Dirección:</strong> {{ getReportLocation(report) }}</p>
+            </div>
+            <hr *ngIf="!last" class="divider">
+          </ng-container>
         </ng-container>
 
         <a class="link-all" routerLink="/mis-reportes">

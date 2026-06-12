@@ -8,7 +8,7 @@
 
   <div class="search-bar-container">
     <span class="search-icon">🔍</span>
-    <input type="text" placeholder="Buscar reporte" class="search-input">
+    <input type="text" placeholder="Buscar reporte" class="search-input" (input)="onSearch($event)">
   </div>
 
   <div class="layout-grid">
@@ -16,8 +16,14 @@
     <aside class="sidebar-filters">
       <div class="filter-group">
         <h3>Ordenar por fecha</h3>
-        <label class="radio-label"><input type="radio" name="order" checked> Más recientes</label>
-        <label class="radio-label"><input type="radio" name="order"> Más antiguos</label>
+        <label class="radio-label">
+          <input type="radio" name="order" [checked]="selectedOrder === 'recent'" (change)="changeOrder('recent')"> 
+          Más recientes
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="order" [checked]="selectedOrder === 'old'" (change)="changeOrder('old')"> 
+          Más antiguos
+        </label>
       </div>
 
       <div class="filter-group">
@@ -25,25 +31,62 @@
         <h3 *ngIf="currentUserRole === 'operativo'">Filtrar por prioridad</h3>
         
         <ng-container *ngIf="currentUserRole === 'ciudadano'">
-          <label class="radio-label"><input type="radio" name="status"> Recibidos</label>
-          <label class="radio-label"><input type="radio" name="status"> Derivados</label>
-          <label class="radio-label"><input type="radio" name="status"> Completados</label>
+          <label class="radio-label">
+            <input type="radio" name="status" [checked]="selectedStatus === 'all'" (change)="changeStatus('all')"> 
+            Todos
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="status" [checked]="selectedStatus === 'Recibido'" (change)="changeStatus('Recibido')"> 
+            Recibidos
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="status" [checked]="selectedStatus === 'Derivado'" (change)="changeStatus('Derivado')"> 
+            Derivados
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="status" [checked]="selectedStatus === 'Completado'" (change)="changeStatus('Completado')"> 
+            Completados
+          </label>
         </ng-container>
 
         <ng-container *ngIf="currentUserRole === 'recepcionista'">
-          <label class="radio-label"><input type="radio" name="status" checked> Recibidos</label>
-          </ng-container>
+          <label class="radio-label">
+            <input type="radio" name="status" [checked]="selectedStatus === 'all'" (change)="changeStatus('all')"> 
+            Todos
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="status" [checked]="selectedStatus === 'Recibido'" (change)="changeStatus('Recibido')"> 
+            Recibidos
+          </label>
+        </ng-container>
 
         <ng-container *ngIf="currentUserRole === 'operativo'">
-          <label class="radio-label"><input type="radio" name="priority"> Alta</label>
-          <label class="radio-label"><input type="radio" name="priority"> Media</label>
-          <label class="radio-label"><input type="radio" name="priority"> Baja</label>
+          <label class="radio-label">
+            <input type="radio" name="priority" [checked]="selectedPriority === 'all'" (change)="changePriority('all')"> 
+            Todos
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="priority" [checked]="selectedPriority === 'Alta'" (change)="changePriority('Alta')"> 
+            Alta
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="priority" [checked]="selectedPriority === 'Media'" (change)="changePriority('Media')"> 
+            Media
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="priority" [checked]="selectedPriority === 'Baja'" (change)="changePriority('Baja')"> 
+            Baja
+          </label>
         </ng-container>
       </div>
     </aside>
 
     <section class="reports-list">
-      <ng-container *ngFor="let reporte of reportsList">
+      <div *ngIf="!isLoading && filteredReportsList.length === 0" class="no-results-message">
+        No se encontraron reportes con los criterios seleccionados.
+      </div>
+
+      <ng-container *ngFor="let reporte of paginatedReportsList">
         <div class="report-card" 
              (click)="selectReport(reporte)"
              [class.active-card]="selectedReport === reporte"
@@ -61,6 +104,29 @@
           <div class="active-indicator" *ngIf="selectedReport === reporte">→</div>
         </div>
       </ng-container>
+
+      <!-- Paginación -->
+      <div class="pagination-container" *ngIf="totalPages > 1">
+        <button 
+          class="pagination-arrow" 
+          [disabled]="currentPage === 1" 
+          (click)="setPage(currentPage - 1)">
+          ‹
+        </button>
+        <button 
+          *ngFor="let page of pagesArray" 
+          class="pagination-number" 
+          [class.active-page]="currentPage === page" 
+          (click)="setPage(page)">
+          {{ page }}
+        </button>
+        <button 
+          class="pagination-arrow" 
+          [disabled]="currentPage === totalPages" 
+          (click)="setPage(currentPage + 1)">
+          ›
+        </button>
+      </div>
     </section>
 
     <section class="report-details" *ngIf="!selectedReport" style="display: flex; align-items: center; justify-content: center; text-align: center; border: 2px dashed #ccc;">
