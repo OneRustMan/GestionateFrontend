@@ -61,19 +61,19 @@
       <div class="filter-group" *ngIf="currentUserRole === 'operativo'">
         <h3>Filtrar por prioridad</h3>
           <label class="radio-label">
-            <input type="radio" name="priority" [checked]="selectedPriority === 'all'" (change)="changePriority('all')">
+            <input type="radio" name="priority" [checked]="selectedPriorityFilter === 'all'" (change)="changePriority('all')">
             Todos
           </label>
           <label class="radio-label">
-            <input type="radio" name="priority" [checked]="selectedPriority === 'Alta'" (change)="changePriority('Alta')">
+            <input type="radio" name="priority" [checked]="selectedPriorityFilter === 'Alta'" (change)="changePriority('Alta')">
             Alta
           </label>
           <label class="radio-label">
-            <input type="radio" name="priority" [checked]="selectedPriority === 'Media'" (change)="changePriority('Media')">
+            <input type="radio" name="priority" [checked]="selectedPriorityFilter === 'Media'" (change)="changePriority('Media')">
             Media
           </label>
           <label class="radio-label">
-            <input type="radio" name="priority" [checked]="selectedPriority === 'Baja'" (change)="changePriority('Baja')">
+            <input type="radio" name="priority" [checked]="selectedPriorityFilter === 'Baja'" (change)="changePriority('Baja')">
             Baja
           </label>
       </div>
@@ -88,7 +88,11 @@
         {{ errorMessage }}
       </div>
 
-      <div *ngIf="!isLoading && !errorMessage && filteredReportsList.length === 0" class="no-results-message">
+      <div *ngIf="!isLoading && deriveSuccess" class="derive-success-message">
+        {{ deriveSuccess }}
+      </div>
+
+      <div *ngIf="!isLoading && !errorMessage && !deriveSuccess && filteredReportsList.length === 0" class="no-results-message">
         {{ getEmptyStateMessage() }}
       </div>
 
@@ -307,6 +311,33 @@
                 <li [class.active]="isStatusStepActive(detail.status, 'DERIVED')"><span class="circle"></span> 2. Derivado</li>
                 <li [class.active]="isStatusStepActive(detail.status, 'ORDER_COMPLETED')"><span class="circle"></span> 3. Orden completada</li>
               </ul>
+            </div>
+
+            <div class="detail-section derive-section" *ngIf="canShowDeriveSection">
+              <p class="section-title derive-title">Derivar a limpieza pública</p>
+              <p class="section-title">Prioridad</p>
+
+              <div class="derive-options" role="radiogroup" aria-label="Prioridad">
+                <label class="radio-label derive-option">
+                  <input type="radio" name="derivePriority" [checked]="selectedPriority === 'LOW'" (change)="onDerivePriorityChange('LOW')">
+                  Baja
+                </label>
+                <label class="radio-label derive-option">
+                  <input type="radio" name="derivePriority" [checked]="selectedPriority === 'MEDIUM'" (change)="onDerivePriorityChange('MEDIUM')">
+                  Media
+                </label>
+                <label class="radio-label derive-option">
+                  <input type="radio" name="derivePriority" [checked]="selectedPriority === 'HIGH'" (change)="onDerivePriorityChange('HIGH')">
+                  Alta
+                </label>
+              </div>
+
+              <div *ngIf="deriveError" class="derive-error-message">{{ deriveError }}</div>
+              <div *ngIf="deriveSuccess" class="derive-success-message compact-message">{{ deriveSuccess }}</div>
+
+              <button type="button" class="derive-button" [disabled]="deriveLoading" (click)="derivar()">
+                {{ deriveLoading ? 'Derivando...' : 'Derivar' }}
+              </button>
             </div>
           </ng-container>
         </ng-container>
