@@ -1,110 +1,192 @@
-import { Component, OnInit, DestroyRef, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router, NavigationEnd, RouterLink } from '@angular/router';
-import { filter, finalize } from 'rxjs/operators';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AuthService } from '../../services/auth.service';
-import { ReportService } from '../../services/report.service';
-import { ReportResponse } from '../../models/report.models';
+import { Component, OnInit, DestroyRef, inject, ChangeDetectorRef } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { Router, NavigationEnd, RouterLink } from "@angular/router";
+import { filter, finalize } from "rxjs/operators";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { AuthService } from "../../services/auth.service";
+import { ReceptionService } from "../../services/reception.service";
+import { ReportService } from "../../services/report.service";
+import { LocationResponse, ReceptionReportInboxResponse, ReportResponse } from "../../models/report.models";
+
+interface RecentReportItem {
+  reportCode: string;
+  description: string;
+  location: string;
+}
 
 @Component({
-  selector: 'app-home',
+  selector: "app-home",
   standalone: true,
   imports: [CommonModule, RouterLink],
-  templateUrl: './home.html',
-  styleUrls: ['./home.css']
+  templateUrl: "./home.html",
+  styleUrls: ["./home.css"]
 })
 export class HomeComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly cdr = inject(ChangeDetectorRef);
-  recentReports: ReportResponse[] = [];
+
+  recentReports: RecentReportItem[] = [];
   isLoading = false;
   errorMessage = "";
 
   constructor(
     private readonly authService: AuthService,
     private readonly reportService: ReportService,
+    private readonly receptionService: ReceptionService,
     private readonly router: Router
   ) { }
 
+  get isReceptionist(): boolean {
+    return this.authService.getRole() === "MUNICIPAL_RECEPTIONIST";
+  }
+
+  get primaryActionLabel(): string {
+    return this.isReceptionist ? "Reportes recibidos" : "Crear Reporte";
+  }
+
+  get primaryActionLink(): string {
+    return this.isReceptionist ? "/reportes-recibidos" : "/crear-reporte";
+  }
+
+  get reportsTitle(): string {
+    return this.isReceptionist ? "Últimos reportes recibidos" : "Tus últimos reportes";
+  }
+
+  get emptyMessage(): string {
+    return this.isReceptionist ? "No hay reportes pendientes" : "No tienes reportes registrados actualmente.";
+  }
+
+  get finalLinkLabel(): string {
+    return this.isReceptionist ? "Ver mis reportes recibidos" : "Ver todos mis reportes";
+  }
+
+  get finalLinkRoute(): string {
+    return this.isReceptionist ? "/reportes-recibidos" : "/mis-reportes";
+  }
+
   ngOnInit(): void {
-    console.log('HomeComponent: ngOnInit called.');
     this.loadRecentReports();
 
     this.router.events.pipe(
       filter((event) => event instanceof NavigationEnd),
-      filter((event) => (event as NavigationEnd).urlAfterRedirects.split('?')[0] === '/home'),
+      filter((event) => (event as NavigationEnd).urlAfterRedirects.split("?")[0] === "/home"),
       takeUntilDestroyed(this.destroyRef),
-    ).subscribe((event) => {
-      console.log('HomeComponent: NavigationEnd event received.', (event as NavigationEnd).urlAfterRedirects);
+    ).subscribe(() => {
       this.loadRecentReports();
     });
   }
 
   loadRecentReports(): void {
     if (this.isLoading) {
-      console.log('HomeComponent: loadRecentReports ignored because it is already loading.');
       return;
     }
 
+    if (this.isReceptionist) {
+      this.loadReceptionRecentReports();
+      return;
+    }
+
+    this.loadCitizenRecentReports();
+  }
+
+  private loadCitizenRecentReports(): void {
     const citizenId = this.authService.getCitizenId();
-    console.log('HomeComponent: loadRecentReports called. citizenId:', citizenId);
     if (!citizenId) {
-      console.log('HomeComponent: No citizenId found. Skipping reports load.');
       this.recentReports = [];
       this.isLoading = false;
       this.cdr.detectChanges();
       return;
     }
 
-    this.isLoading = true;
-    this.errorMessage = "";
-    this.cdr.detectChanges();
+    this.startLoading();
 
     this.reportService.getCitizenHistory(citizenId).pipe(
-      finalize(() => {
-        this.isLoading = false;
-        console.log('HomeComponent: Request finalized. isLoading set to false.');
-        this.cdr.detectChanges();
-      })
+      finalize(() => this.stopLoading())
     ).subscribe({
       next: (reports) => {
-        console.log('HomeComponent: Request success. Reports received:', reports);
-        if (Array.isArray(reports)) {
-          this.recentReports = reports.slice(0, 2);
-        } else {
-          this.recentReports = [];
-        }
+        this.recentReports = Array.isArray(reports)
+          ? reports.slice(0, 2).map((report) => this.mapCitizenReport(report))
+          : [];
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('HomeComponent: Request error:', err);
-        this.errorMessage = 'No se pudieron cargar tus reportes recientes.';
+      error: () => {
+        this.errorMessage = "No se pudieron cargar tus reportes recientes.";
         this.cdr.detectChanges();
       }
     });
   }
 
+  private loadReceptionRecentReports(): void {
+    const receptionistId = this.authService.getProfileId();
+    if (this.authService.getRole() !== "MUNICIPAL_RECEPTIONIST" || !receptionistId) {
+      this.recentReports = [];
+      this.isLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.startLoading();
+
+    this.receptionService.getInboxReports(receptionistId).pipe(
+      finalize(() => this.stopLoading())
+    ).subscribe({
+      next: (reports) => {
+        this.recentReports = Array.isArray(reports)
+          ? reports.slice(0, 2).map((report) => this.mapReceptionReport(report))
+          : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.errorMessage = "No se pudieron cargar los reportes recibidos.";
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private startLoading(): void {
+    this.isLoading = true;
+    this.errorMessage = "";
+    this.cdr.detectChanges();
+  }
+
+  private stopLoading(): void {
+    this.isLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  private mapCitizenReport(report: ReportResponse): RecentReportItem {
+    return {
+      reportCode: report.reportCode || "#" + report.id,
+      description: report.description || "",
+      location: this.formatLocation(report.location),
+    };
+  }
+
+  private mapReceptionReport(report: ReceptionReportInboxResponse): RecentReportItem {
+    return {
+      reportCode: report.reportCode || "#" + report.reportId,
+      description: report.description || "",
+      location: this.formatLocation(report.location),
+    };
+  }
+
   truncateDescription(desc?: string): string {
-    if (!desc) return '';
-    return desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
+    if (!desc) return "";
+    return desc.length > 80 ? desc.substring(0, 80) + "..." : desc;
   }
 
-  getReportTitle(report: ReportResponse): string {
-    return `Reporte ${report.reportCode || '#' + report.id}`;
+  getReportTitle(report: RecentReportItem): string {
+    return "Reporte " + report.reportCode;
   }
 
-  getReportLocation(report: ReportResponse): string {
-    const loc = report.location as any;
-    if (!loc) return '-';
-    if (typeof loc === 'string') return loc;
+  private formatLocation(location: LocationResponse | string | null): string {
+    if (!location) return "Ubicación no disponible";
+    if (typeof location === "string") return location || "Ubicación no disponible";
 
-    // Si loc es un objeto de tipo LocationResponse
-    const parts = [];
-    if (loc.addressReference) parts.push(loc.addressReference);
-    if (loc.districtName) parts.push(loc.districtName);
-    if (loc.province) parts.push(loc.province);
+    const address = location.addressReference || "";
+    const area = [location.districtName, location.province].filter(Boolean).join(", ");
 
-    return parts.length > 0 ? parts.join(', ') : '-';
+    if (address && area) return address + " - " + area;
+    return address || area || "Ubicación no disponible";
   }
 }

@@ -91,7 +91,7 @@
       </div>
 
       <div *ngIf="!isLoading && !errorMessage && filteredReportsList.length === 0" class="no-results-message">
-        {{ currentUserRole === 'ciudadano' && reportsList.length === 0 && selectedStatus === 'all' && !searchTerm.trim() ? 'Aún no tienes reportes registrados' : 'No se encontraron reportes con los criterios seleccionados.' }}
+        {{ getEmptyStateMessage() }}
       </div>
 
       <ng-container *ngFor="let reporte of paginatedReportsList">
@@ -100,8 +100,10 @@
              [class.active-card]="selectedReport === reporte"
              style="cursor: pointer;">
           <h2>{{ reporte.id }}</h2>
+          <p *ngIf="currentUserRole === 'recepcionista'">Ciudadano: {{ reporte.citizenFullName }}</p>
           <p>Tipo: {{ reporte.tipo }}</p>
           <p>Lugar: {{ reporte.lugar }}</p>
+          <p>Descripción: {{ reporte.description }}</p>
           <p>Fecha: {{ reporte.fecha }}</p>
           
           <div class="badge" 
@@ -252,10 +254,6 @@
               <li><span class="circle"></span> 2. Derivado</li>
               <li><span class="circle"></span> 3. Tarea completada</li>
             </ul>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-              <button (click)="derivar()" style="flex: 1; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Derivar</button>
-              <button (click)="abrirFormularioDenegar()" style="flex: 1; background-color: #EB5757; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Denegar</button>
-            </div>
           </div>
 
           <div class="detail-section" *ngIf="showDenegarForm" style="background-color: #F8F9FA; padding: 1.5rem; border-radius: 12px; border: 1px solid #E0E0E0; margin-top: 1rem;">

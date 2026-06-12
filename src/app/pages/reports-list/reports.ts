@@ -8,7 +8,7 @@ import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
-import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReportResponse, ReportSummary } from "../../models/report.models";
+import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReceptionReportInboxResponse, ReportResponse, ReportSummary } from "../../models/report.models";
 import { WorkOrderSummary } from "../../models/work-order.models";
 
 interface ViewItem {
@@ -19,6 +19,7 @@ interface ViewItem {
   fecha: string;
   estado: string;
   description: string;
+  citizenFullName?: string;
   createdAt?: string;
   priority?: string;
 }
@@ -63,6 +64,7 @@ export class ReportsComponent implements OnInit {
       const term = this.searchTerm.toLowerCase().trim();
       list = list.filter(item => 
         item.id.toLowerCase().includes(term) ||
+        (item.citizenFullName || "").toLowerCase().includes(term) ||
         item.tipo.toLowerCase().includes(term) ||
         item.lugar.toLowerCase().includes(term) ||
         item.description.toLowerCase().includes(term) ||
@@ -378,15 +380,21 @@ export class ReportsComponent implements OnInit {
     }
 
     if (this.currentUserRole === "recepcionista") {
-      const receptionistId = this.authService.getReceptionistId();
-      if (!receptionistId) {
+      const receptionistId = this.authService.getProfileId();
+      if (this.authService.getRole() !== "MUNICIPAL_RECEPTIONIST" || !receptionistId) {
+        this.failLoad("Acceso denegado.");
+        void this.router.navigate(["/home"]);
+        return;
+      }
+
+      if (this.currentView === "recepcionista-derivados") {
         this.finishLoad([]);
         return;
       }
 
-      this.receptionService.getInbox(receptionistId).subscribe({
-        next: (reports) => this.finishLoad(reports.map((report) => this.mapReport(report))),
-        error: () => this.failLoad("No se pudieron cargar los reportes de recepcion."),
+      this.receptionService.getInboxReports(receptionistId).subscribe({
+        next: (reports) => this.finishLoad(reports.map((report) => this.mapReceptionInboxReport(report))),
+        error: (error: HttpErrorResponse) => this.handleReceptionInboxError(error),
       });
       return;
     }
@@ -431,6 +439,20 @@ export class ReportsComponent implements OnInit {
     };
   }
 
+  private mapReceptionInboxReport(report: ReceptionReportInboxResponse): ViewItem {
+    return {
+      numericId: report.reportId,
+      id: report.reportCode || "#" + report.reportId,
+      tipo: this.getIncidentTypesLabel(report),
+      lugar: this.formatLocation(report.location),
+      fecha: this.formatDate(report.createdAt),
+      estado: this.getStatusLabel(report.status),
+      description: report.description || "-",
+      citizenFullName: report.citizenFullName || "Ciudadano no disponible",
+      createdAt: report.createdAt,
+    };
+  }
+
   private getStatusFilterParam(): string | undefined {
     const statusMap: Record<string, string> = {
       Recibido: "RECEIVED",
@@ -441,7 +463,7 @@ export class ReportsComponent implements OnInit {
     return statusMap[this.selectedStatus];
   }
 
-  getIncidentTypesLabel(report: ReportResponse | ReportSummary): string {
+  getIncidentTypesLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse): string {
     const incidentTypes = report.incidentTypes || [];
     const labels = incidentTypes
       .map((type) => this.getIncidentTypeLabel(type))
@@ -465,7 +487,7 @@ export class ReportsComponent implements OnInit {
     return typeMap[name] || name || "";
   }
 
-  getLocationLabel(report: ReportResponse | ReportSummary): string {
+  getLocationLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse): string {
     return this.formatLocation(report.location);
   }
 
@@ -522,6 +544,16 @@ export class ReportsComponent implements OnInit {
     };
   }
 
+  private handleReceptionInboxError(error: HttpErrorResponse): void {
+    if (error.status === 401 || error.status === 403) {
+      this.failLoad("Acceso denegado.");
+      void this.router.navigate(["/home"]);
+      return;
+    }
+
+    this.failLoad("No se pudieron cargar los reportes recibidos.");
+  }
+
   private handleCitizenHistoryError(error: HttpErrorResponse): void {
     if (error.status === 401 || error.status === 403) {
       this.failLoad("Debes iniciar sesión para ver tu historial de reportes.");
@@ -530,6 +562,18 @@ export class ReportsComponent implements OnInit {
     }
 
     this.failLoad("No se pudo cargar el historial de reportes.");
+  }
+
+  getEmptyStateMessage(): string {
+    if (this.currentView === "recepcionista-recibidos" && this.reportsList.length === 0 && this.selectedStatus === "all" && !this.searchTerm.trim()) {
+      return "No hay reportes pendientes";
+    }
+
+    if (this.currentUserRole === "ciudadano" && this.reportsList.length === 0 && this.selectedStatus === "all" && !this.searchTerm.trim()) {
+      return "Aún no tienes reportes registrados";
+    }
+
+    return "No se encontraron reportes con los criterios seleccionados.";
   }
 
   getStatusLabel(status: string): string {
