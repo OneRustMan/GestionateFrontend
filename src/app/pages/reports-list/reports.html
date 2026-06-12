@@ -143,105 +143,168 @@
 
     <section class="report-details" *ngIf="selectedReport">
       <h3>Detalle del reporte</h3>
-      
-      <div class="detail-section">
-        <p class="section-title">Descripción del problema</p>
-        <div class="description-box">{{ selectedReport.description }}</div>
-      </div>
 
-      <ng-container *ngIf="currentUserRole !== 'operativo' || (selectedReport.estado === 'Pendiente de Recepción' && !showCoordinarForm)">
-        <div class="detail-section" *ngIf="!showDenegarForm">
-          <p class="section-title">Foto</p>
-          <div class="photos-grid">
-            <div class="photo-placeholder">IMG</div>
-            <div class="photo-placeholder">IMG</div>
-            <div class="photo-placeholder">IMG</div>
+      <ng-container *ngIf="currentView === 'ciudadano-mis-reportes'; else operationalDetail">
+        <div *ngIf="detailLoading" class="detail-loading">Cargando detalle...</div>
+        <div *ngIf="!detailLoading && detailError" class="detail-error">{{ detailError }}</div>
+
+        <ng-container *ngIf="!detailLoading && !detailError && selectedReportDetail as detail">
+          <div class="detail-section">
+            <p class="section-title">Código de reporte</p>
+            <div class="description-box compact-detail">{{ detail.reportCode }}</div>
           </div>
-        </div>
-        <div class="detail-section" *ngIf="!showDenegarForm">
-          <p class="section-title">Ver ubicación</p>
-          <div class="map-placeholder"><p>Mapa de {{ selectedReport.lugar }}</p></div>
-        </div>
+
+          <div class="detail-section">
+            <p class="section-title">Estado actual</p>
+            <div class="badge status-detail-badge">{{ getStatusLabel(detail.status) }}</div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Descripción del problema</p>
+            <div class="description-box">{{ detail.description }}</div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Tipo de incidente</p>
+            <div class="detail-chips" *ngIf="detail.incidentTypes.length > 0; else noIncidentTypes">
+              <span class="detail-chip" *ngFor="let type of detail.incidentTypes">
+                {{ getIncidentTypeLabel(type.name) }}
+              </span>
+            </div>
+            <ng-template #noIncidentTypes>
+              <div class="description-box compact-detail">Sin tipo de incidente registrado</div>
+            </ng-template>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Ubicación</p>
+            <div class="description-box location-detail">
+              <p>{{ getLocationText(detail.location) }}</p>
+              <ng-container *ngIf="detail.location">
+                <p *ngIf="detail.location.latitude !== undefined">Latitud: {{ detail.location.latitude }}</p>
+                <p *ngIf="detail.location.longitude !== undefined">Longitud: {{ detail.location.longitude }}</p>
+              </ng-container>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Fechas</p>
+            <div class="description-box compact-detail">
+              <p>Creado: {{ formatDate(detail.createdAt) }}</p>
+              <p *ngIf="detail.updatedAt">Actualizado: {{ formatDate(detail.updatedAt) }}</p>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Evidencias</p>
+            <div class="photos-grid evidence-grid" *ngIf="detail.evidences.length > 0; else noEvidences">
+              <ng-container *ngFor="let evidence of detail.evidences">
+                <a *ngIf="getEvidenceUrl(evidence); else evidencePlaceholder" [href]="getEvidenceUrl(evidence)" target="_blank" rel="noopener noreferrer" class="evidence-link">
+                  <img [src]="getEvidenceUrl(evidence)" [alt]="getEvidenceLabel(evidence)" class="evidence-image">
+                </a>
+                <ng-template #evidencePlaceholder>
+                  <div class="photo-placeholder">{{ getEvidenceLabel(evidence) }}</div>
+                </ng-template>
+              </ng-container>
+            </div>
+            <ng-template #noEvidences>
+              <div class="photo-placeholder evidence-empty">Sin evidencias registradas</div>
+            </ng-template>
+          </div>
+
+          <div class="detail-section" style="margin-top: 1.5rem;">
+            <p class="section-title">Estado del reporte</p>
+            <ul class="status-timeline">
+              <li [class.active]="isStatusStepActive(detail.status, 'RECEIVED')"><span class="circle"></span> 1. Recibido</li>
+              <li [class.active]="isStatusStepActive(detail.status, 'DERIVED')"><span class="circle"></span> 2. Derivado</li>
+              <li [class.active]="isStatusStepActive(detail.status, 'ORDER_COMPLETED')"><span class="circle"></span> 3. Tarea completada</li>
+            </ul>
+          </div>
+        </ng-container>
       </ng-container>
 
-      <div class="detail-section" *ngIf="currentView === 'ciudadano-mis-reportes'" style="margin-top: 1.5rem;">
-        <p class="section-title">Estado del reporte</p>
-        <ul class="status-timeline">
-          <li class="active"><span class="circle"></span> 1. Recibido</li>
-          <li [class.active]="selectedReport.estado === 'Derivado' || selectedReport.estado === 'Completado'"><span class="circle"></span> 2. Derivado</li>
-          <li [class.active]="selectedReport.estado === 'Completado'"><span class="circle"></span> 3. Tarea completada</li>
-        </ul>
-      </div>
+      <ng-template #operationalDetail>
+        <div class="detail-section">
+          <p class="section-title">Descripción del problema</p>
+          <div class="description-box">{{ selectedReport.description }}</div>
+        </div>
 
-      <ng-container *ngIf="currentView === 'recepcionista-recibidos'">
-        
-        <div class="detail-section" *ngIf="!showDenegarForm" style="margin-top: 1.5rem;">
+        <ng-container *ngIf="currentUserRole !== 'operativo' || (selectedReport.estado === 'Pendiente de Recepción' && !showCoordinarForm)">
+          <div class="detail-section" *ngIf="!showDenegarForm">
+            <p class="section-title">Foto</p>
+            <div class="photos-grid">
+              <div class="photo-placeholder">IMG</div>
+              <div class="photo-placeholder">IMG</div>
+              <div class="photo-placeholder">IMG</div>
+            </div>
+          </div>
+          <div class="detail-section" *ngIf="!showDenegarForm">
+            <p class="section-title">Ver ubicación</p>
+            <div class="map-placeholder"><p>Mapa de {{ selectedReport.lugar }}</p></div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="currentView === 'recepcionista-recibidos'">
+          <div class="detail-section" *ngIf="!showDenegarForm" style="margin-top: 1.5rem;">
+            <p class="section-title">Estado del reporte</p>
+            <ul class="status-timeline">
+              <li class="active"><span class="circle"></span> 1. Recibido</li>
+              <li><span class="circle"></span> 2. Derivado</li>
+              <li><span class="circle"></span> 3. Tarea completada</li>
+            </ul>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+              <button (click)="derivar()" style="flex: 1; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Derivar</button>
+              <button (click)="abrirFormularioDenegar()" style="flex: 1; background-color: #EB5757; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Denegar</button>
+            </div>
+          </div>
+
+          <div class="detail-section" *ngIf="showDenegarForm" style="background-color: #F8F9FA; padding: 1.5rem; border-radius: 12px; border: 1px solid #E0E0E0; margin-top: 1rem;">
+            <p class="section-title" style="font-weight: bold; margin-bottom: 1rem; font-size: 1rem;">Denegar reporte</p>
+            <p style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #555;">Seleccione motivo</p>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+              <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Descripción mal detallada</label>
+              <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Fotos no coinciden a la descripción</label>
+              <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Reporte repetido</label>
+            </div>
+            <input type="text" placeholder="Otro Especificar..." style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #ccc; background-color: #FFF; margin-bottom: 1.5rem; font-family: inherit;">
+            <button (click)="confirmarDenegacion()" style="width: 100%; background-color: #EB5757; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Denegar</button>
+          </div>
+        </ng-container>
+
+        <div class="detail-section" *ngIf="currentView === 'recepcionista-derivados' || (currentUserRole === 'operativo' && (selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'))" style="margin-top: 1.5rem;">
           <p class="section-title">Estado del reporte</p>
           <ul class="status-timeline">
-            <li class="active"><span class="circle"></span> 1. Recibido</li>
-            <li><span class="circle"></span> 2. Derivado</li>
-            <li><span class="circle"></span> 3. Tarea completada</li>
+            <li class="active"><span class="circle"></span> Reporte enviado al área encargada</li>
+            <li [class.active]="selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'"><span class="circle"></span> Recepción del reporte confirmada</li>
+            <li [class.active]="selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'"><span class="circle"></span> En proceso de ejecución</li>
+            <li [class.active]="selectedReport.estado === 'Completado'"><span class="circle"></span> Completado</li>
           </ul>
-          <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-            <button (click)="derivar()" style="flex: 1; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Derivar</button>
-            <button (click)="abrirFormularioDenegar()" style="flex: 1; background-color: #EB5757; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Denegar</button>
-          </div>
+          <button *ngIf="currentUserRole === 'operativo' && selectedReport.estado === 'Completado'" (click)="registrarInforme()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 1rem;">Registrar informe</button>
         </div>
 
-        <div class="detail-section" *ngIf="showDenegarForm" style="background-color: #F8F9FA; padding: 1.5rem; border-radius: 12px; border: 1px solid #E0E0E0; margin-top: 1rem;">
-          <p class="section-title" style="font-weight: bold; margin-bottom: 1rem; font-size: 1rem;">Denegar reporte</p>
-          <p style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #555;">Seleccione motivo</p>
-          
-          <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
-            <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Descripción mal detallada</label>
-            <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Fotos no coinciden a la descripción</label>
-            <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Reporte repetido</label>
+        <ng-container *ngIf="currentUserRole === 'operativo'">
+          <div class="detail-section" *ngIf="selectedReport.estado === 'Pendiente de Recepción' && !showCoordinarForm" style="margin-top: 1.5rem;">
+            <button (click)="abrirFormularioCoordinar()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Coordinar equipo</button>
           </div>
 
-          <input type="text" placeholder="Otro Especificar..." style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #ccc; background-color: #FFF; margin-bottom: 1.5rem; font-family: inherit;">
-
-          <button (click)="confirmarDenegacion()" style="width: 100%; background-color: #EB5757; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
-            Denegar
-          </button>
-        </div>
-      </ng-container>
-
-      <div class="detail-section" *ngIf="currentView === 'recepcionista-derivados' || (currentUserRole === 'operativo' && (selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'))" style="margin-top: 1.5rem;">
-        <p class="section-title">Estado del reporte</p>
-        <ul class="status-timeline">
-          <li class="active"><span class="circle"></span> Reporte enviado al área encargada</li>
-          <li [class.active]="selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'"><span class="circle"></span> Recepción del reporte confirmada</li>
-          <li [class.active]="selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'"><span class="circle"></span> En proceso de ejecución</li>
-          <li [class.active]="selectedReport.estado === 'Completado'"><span class="circle"></span> Completado</li>
-        </ul>
-        <button *ngIf="currentUserRole === 'operativo' && selectedReport.estado === 'Completado'" (click)="registrarInforme()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 1rem;">
-          Registrar informe
-        </button>
-      </div>
-
-      <ng-container *ngIf="currentUserRole === 'operativo'">
-        <div class="detail-section" *ngIf="selectedReport.estado === 'Pendiente de Recepción' && !showCoordinarForm" style="margin-top: 1.5rem;">
-          <button (click)="abrirFormularioCoordinar()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Coordinar equipo</button>
-        </div>
-
-        <div class="detail-section" *ngIf="selectedReport.estado === 'Pendiente de Recepción' && showCoordinarForm" style="background-color: #F8F9FA; padding: 1.5rem; border-radius: 12px; border: 1px solid #E0E0E0; margin-top: 1rem;">
-          <p class="section-title" style="font-weight: bold; margin-bottom: 1rem; font-size: 1rem;">Coordinar equipo</p>
-          <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 0.5rem;">Elegir equipo adecuado</p>
-          <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
-            <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de barrenderos</label>
-            <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de recolectores de basura</label>
-            <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de limpieza pública</label>
+          <div class="detail-section" *ngIf="selectedReport.estado === 'Pendiente de Recepción' && showCoordinarForm" style="background-color: #F8F9FA; padding: 1.5rem; border-radius: 12px; border: 1px solid #E0E0E0; margin-top: 1rem;">
+            <p class="section-title" style="font-weight: bold; margin-bottom: 1rem; font-size: 1rem;">Coordinar equipo</p>
+            <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 0.5rem;">Elegir equipo adecuado</p>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de barrenderos</label>
+              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de recolectores de basura</label>
+              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de limpieza pública</label>
+            </div>
+            <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 0.5rem;">Designar prioridad</p>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Leve</label>
+              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Medio</label>
+              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Grave</label>
+            </div>
+            <button (click)="confirmarCoordinacion()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Coordinar equipo</button>
           </div>
-          <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 0.5rem;">Designar prioridad</p>
-          <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
-            <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Leve</label>
-            <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Medio</label>
-            <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Grave</label>
-          </div>
-          <button (click)="confirmarCoordinacion()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Coordinar equipo</button>
-        </div>
-      </ng-container>
-
+        </ng-container>
+      </ng-template>
     </section>
   </div>
 </div>

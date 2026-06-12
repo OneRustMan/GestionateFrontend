@@ -23,6 +23,8 @@ interface ViewItem {
   priority?: string;
 }
 
+type ReportDisplaySource = Pick<ReportSummary | ReportResponse, "incidentTypes" | "location">;
+
 @Component({
   selector: "app-reports",
   standalone: true,
@@ -43,6 +45,9 @@ export class ReportsComponent implements OnInit {
 
   reportsList: ViewItem[] = [];
   selectedReport: ViewItem | null = null;
+  selectedReportDetail: ReportResponse | null = null;
+  detailLoading = false;
+  detailError = "";
 
   currentPage = 1;
   pageSize = 3;
@@ -144,6 +149,7 @@ export class ReportsComponent implements OnInit {
       const stillExists = this.filteredReportsList.some(item => item.numericId === this.selectedReport!.numericId);
       if (!stillExists) {
         this.selectedReport = null;
+        this.clearReportDetail();
       }
     }
   }
@@ -203,6 +209,7 @@ export class ReportsComponent implements OnInit {
 
   determinarRolPorUrl(url: string) {
     this.selectedReport = null;
+    this.clearReportDetail();
     this.showCoordinarForm = false;
     this.showDenegarForm = false;
 
@@ -230,6 +237,55 @@ export class ReportsComponent implements OnInit {
     this.selectedReport = report;
     this.showCoordinarForm = false;
     this.showDenegarForm = false;
+    this.clearReportDetail();
+
+    if (this.currentView === "ciudadano-mis-reportes") {
+      this.loadCitizenReportDetail(report);
+    }
+  }
+
+  private loadCitizenReportDetail(report: ViewItem): void {
+    const citizenId = this.authService.getProfileId();
+
+    if (this.authService.getRole() !== "CITIZEN" || !citizenId) {
+      void this.router.navigate(["/login"]);
+      return;
+    }
+
+    if (!report.numericId) {
+      this.detailError = "Reporte no encontrado.";
+      return;
+    }
+
+    const selectedReportId = report.numericId;
+    this.detailLoading = true;
+    this.detailError = "";
+
+    this.reportService.getCitizenReportDetail(citizenId, selectedReportId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (detail) => {
+        if (this.selectedReport?.numericId !== selectedReportId) return;
+        this.selectedReportDetail = detail;
+        this.detailLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error: HttpErrorResponse) => {
+        if (this.selectedReport?.numericId !== selectedReportId) return;
+        this.detailLoading = false;
+
+        if (error.status === 404) {
+          this.detailError = "Reporte no encontrado.";
+        } else if (error.status === 401 || error.status === 403) {
+          this.authService.clearSession();
+          void this.router.navigate(["/login"]);
+        } else {
+          this.detailError = "No se pudo cargar el detalle del reporte.";
+        }
+
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   derivar() {
@@ -463,7 +519,7 @@ export class ReportsComponent implements OnInit {
     return statusMap[status] || status;
   }
 
-  private formatDate(value?: string): string {
+  formatDate(value?: string): string {
     if (!value) return "-";
     return new Intl.DateTimeFormat("es-PE").format(new Date(value));
   }

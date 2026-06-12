@@ -13,10 +13,11 @@ export interface IncidentTypeResponse {
 }
 
 export interface EvidenceResponse {
-  id?: number;
-  fileName?: string;
-  url?: string;
-  contentType?: string;
+  id: number;
+  reportId: number;
+  fileUrl: string;
+  fileType: string;
+  uploadedAt: string;
 }
 
 export interface LocationResponse {
@@ -48,7 +49,7 @@ export interface ReportSummary {
   status: ReportStatus;
   createdAt?: string;
   updatedAt?: string;
-  incidentTypes?: string[] | IncidentTypeResponse[];
+  incidentTypes?: string[] | IncidentTypeRes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ponse[];
   [key: string]: string | number | boolean | string[] | IncidentTypeResponse[] | EvidenceRequest[] | LocationResponse | null | undefined;
 }
 
