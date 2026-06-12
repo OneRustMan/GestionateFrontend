@@ -19,6 +19,14 @@ export class ReceptionService {
     return this.http.get<ReceptionReportInboxResponse[]>(`${this.apiUrl}/reception/reports/inbox`, { params });
   }
 
+  getDerivedReports(receptionistId: number, incidentTypeId?: number): Observable<ReceptionReportInboxResponse[]> {
+    let params = new HttpParams().set('receptionistId', receptionistId);
+    if (incidentTypeId) {
+      params = params.set('incidentTypeId', incidentTypeId);
+    }
+    return this.http.get<ReceptionReportInboxResponse[]>(`${this.apiUrl}/reception/reports/derived`, { params });
+  }
+
   getReportDetail(receptionistId: number, reportId: number): Observable<ReceptionReportDetailResponse> {
     const params = new HttpParams().set('receptionistId', receptionistId);
     return this.http.get<ReceptionReportDetailResponse>(`${this.apiUrl}/reception/reports/${reportId}/detail`, { params });

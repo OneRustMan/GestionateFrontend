@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { filter } from "rxjs/operators";
 import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
+import { IncidentTypeService } from "../../services/incident-type.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
 import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReceptionReportDetailResponse, ReceptionReportInboxResponse, ReportResponse, ReportSummary } from "../../models/report.models";
@@ -54,6 +55,8 @@ export class ReportsComponent implements OnInit {
 
   selectedOrder = "recent";
   selectedStatus = "all";
+  selectedIncidentTypeId: number | null = null;
+  incidentTypes: IncidentTypeResponse[] = [];
   selectedPriority = "all";
   searchTerm = "";
 
@@ -63,7 +66,7 @@ export class ReportsComponent implements OnInit {
     // 1. Búsqueda por texto
     if (this.searchTerm.trim() !== "") {
       const term = this.searchTerm.toLowerCase().trim();
-      list = list.filter(item => 
+      list = list.filter(item =>
         item.id.toLowerCase().includes(term) ||
         (item.citizenFullName || "").toLowerCase().includes(term) ||
         item.tipo.toLowerCase().includes(term) ||
@@ -84,13 +87,6 @@ export class ReportsComponent implements OnInit {
         }
         if (this.selectedStatus === "Completado") {
           return item.estado === "Completado";
-        }
-        return true;
-      });
-    } else if (this.currentUserRole === "recepcionista" && this.selectedStatus !== "all") {
-      list = list.filter(item => {
-        if (this.selectedStatus === "Recibido") {
-          return item.estado === "Recibido" || item.estado === "Pendiente de Recepción";
         }
         return true;
       });
@@ -175,6 +171,14 @@ export class ReportsComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  onIncidentTypeFilterChange(incidentTypeId: number | null): void {
+    this.selectedIncidentTypeId = incidentTypeId;
+    this.currentPage = 1;
+    this.selectedReport = null;
+    this.clearReportDetail();
+    this.loadItems();
+  }
+
   changePriority(priority: string) {
     this.selectedPriority = priority;
     this.currentPage = 1;
@@ -195,6 +199,7 @@ export class ReportsComponent implements OnInit {
     private readonly authService: AuthService,
     private readonly reportService: ReportService,
     private readonly receptionService: ReceptionService,
+    private readonly incidentTypeService: IncidentTypeService,
     private readonly workOrderService: WorkOrderService,
   ) {}
 
@@ -231,6 +236,10 @@ export class ReportsComponent implements OnInit {
       this.currentView = "ciudadano-mis-reportes";
     }
 
+    if (this.currentUserRole === "recepcionista" && this.incidentTypes.length === 0) {
+      this.loadIncidentTypes();
+    }
+
     this.loadItems();
   }
 
@@ -245,7 +254,7 @@ export class ReportsComponent implements OnInit {
       return;
     }
 
-    if (this.currentView === "recepcionista-recibidos") {
+    if (this.currentView === "recepcionista-recibidos" || this.currentView === "recepcionista-derivados") {
       this.loadReceptionReportDetail(report);
     }
   }
@@ -437,14 +446,14 @@ export class ReportsComponent implements OnInit {
         return;
       }
 
-      if (this.currentView === "recepcionista-derivados") {
-        this.finishLoad([]);
-        return;
-      }
+      const incidentTypeId = this.selectedIncidentTypeId ?? undefined;
+      const reportsRequest = this.currentView === "recepcionista-derivados"
+        ? this.receptionService.getDerivedReports(receptionistId, incidentTypeId)
+        : this.receptionService.getInboxReports(receptionistId, incidentTypeId);
 
-      this.receptionService.getInboxReports(receptionistId).subscribe({
+      reportsRequest.subscribe({
         next: (reports) => this.finishLoad(reports.map((report) => this.mapReceptionInboxReport(report))),
-        error: (error: HttpErrorResponse) => this.handleReceptionInboxError(error),
+        error: (error: HttpErrorResponse) => this.handleReceptionReportsError(error),
       });
       return;
     }
@@ -595,14 +604,31 @@ export class ReportsComponent implements OnInit {
     };
   }
 
-  private handleReceptionInboxError(error: HttpErrorResponse): void {
+  private loadIncidentTypes(): void {
+    this.incidentTypeService.getIncidentTypes().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (incidentTypes) => {
+        this.incidentTypes = incidentTypes.filter((type) => type.active);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.incidentTypes = [];
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private handleReceptionReportsError(error: HttpErrorResponse): void {
     if (error.status === 401 || error.status === 403) {
       this.failLoad("Acceso denegado.");
       void this.router.navigate(["/home"]);
       return;
     }
 
-    this.failLoad("No se pudieron cargar los reportes recibidos.");
+    this.failLoad(this.currentView === "recepcionista-derivados"
+      ? "No se pudieron cargar los reportes derivados."
+      : "No se pudieron cargar los reportes recibidos.");
   }
 
   private handleCitizenHistoryError(error: HttpErrorResponse): void {
@@ -616,8 +642,16 @@ export class ReportsComponent implements OnInit {
   }
 
   getEmptyStateMessage(): string {
-    if (this.currentView === "recepcionista-recibidos" && this.reportsList.length === 0 && this.selectedStatus === "all" && !this.searchTerm.trim()) {
-      return "No hay reportes pendientes";
+    if (this.currentView === "recepcionista-recibidos" && this.reportsList.length === 0 && !this.searchTerm.trim()) {
+      return this.selectedIncidentTypeId
+        ? "No hay reportes pendientes para este tipo de incidencia"
+        : "No hay reportes pendientes";
+    }
+
+    if (this.currentView === "recepcionista-derivados" && this.reportsList.length === 0 && !this.searchTerm.trim()) {
+      return this.selectedIncidentTypeId
+        ? "No hay reportes derivados para este tipo de incidencia"
+        : "No hay reportes derivados";
     }
 
     if (this.currentUserRole === "ciudadano" && this.reportsList.length === 0 && this.selectedStatus === "all" && !this.searchTerm.trim()) {
@@ -635,7 +669,7 @@ export class ReportsComponent implements OnInit {
     const statusMap: Record<string, string> = {
       RECEIVED: "Recibido",
       DERIVED: "Derivado",
-      ORDER_COMPLETED: "Completado",
+      ORDER_COMPLETED: "Orden completada",
       PENDING: "Pendiente de Recepción",
       IN_PROGRESS: "En Proceso",
       COMPLETED: "Completado",
