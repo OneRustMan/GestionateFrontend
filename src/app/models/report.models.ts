@@ -35,7 +35,7 @@ export interface ReportResponse {
   status: ReportStatus;
   incidentTypes: IncidentTypeResponse[];
   evidences: EvidenceResponse[];
-  location: LocationResponse;
+  location: LocationResponse | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,12 +44,12 @@ export interface ReportSummary {
   id: number;
   reportCode: string;
   description: string;
-  location: string;
+  location: string | LocationResponse | null;
   status: ReportStatus;
   createdAt?: string;
   updatedAt?: string;
-  incidentTypes?: string[];
-  [key: string]: string | number | boolean | string[] | EvidenceRequest[] | undefined;
+  incidentTypes?: string[] | IncidentTypeResponse[];
+  [key: string]: string | number | boolean | string[] | IncidentTypeResponse[] | EvidenceRequest[] | LocationResponse | null | undefined;
 }
 
 export interface ReportDetail extends ReportSummary {
