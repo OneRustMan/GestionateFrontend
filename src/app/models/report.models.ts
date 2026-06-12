@@ -49,8 +49,8 @@ export interface ReportSummary {
   status: ReportStatus;
   createdAt?: string;
   updatedAt?: string;
-  incidentTypes?: Array<string | IncidentTypeResponse>;
-  [key: string]: string | number | boolean | LocationResponse | null | Array<string | IncidentTypeResponse> | EvidenceRequest[] | undefined;
+  incidentTypes?: string[] | IncidentTypeRes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ponse[];
+  [key: string]: string | number | boolean | string[] | IncidentTypeResponse[] | EvidenceRequest[] | LocationResponse | null | undefined;
 }
 
 export interface ReportDetail extends ReportSummary {

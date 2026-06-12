@@ -8,7 +8,7 @@ import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
-import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReportResponse, ReportSummary } from "../../models/report.models";
+import { IncidentTypeResponse, LocationResponse, ReportResponse, ReportSummary } from "../../models/report.models";
 import { WorkOrderSummary } from "../../models/work-order.models";
 
 interface ViewItem {
@@ -67,7 +67,8 @@ export class ReportsComponent implements OnInit {
         item.id.toLowerCase().includes(term) ||
         item.tipo.toLowerCase().includes(term) ||
         item.lugar.toLowerCase().includes(term) ||
-        item.description.toLowerCase().includes(term)
+        item.description.toLowerCase().includes(term) ||
+        item.estado.toLowerCase().includes(term)
       );
     }
 
@@ -164,6 +165,12 @@ export class ReportsComponent implements OnInit {
     this.selectedStatus = status;
     this.currentPage = 1;
     this.verifySelectedReport();
+
+    if (this.currentUserRole === "ciudadano") {
+      this.loadItems();
+      return;
+    }
+
     this.cdr.detectChanges();
   }
 
@@ -356,15 +363,18 @@ export class ReportsComponent implements OnInit {
     this.cdr.detectChanges();
 
     if (this.currentUserRole === "ciudadano") {
-      const citizenId = this.authService.getCitizenId();
-      if (!citizenId) {
-        this.finishLoad([]);
+      const citizenId = this.authService.getProfileId();
+      const role = this.authService.getRole();
+
+      if (!this.authService.getToken() || role !== "CITIZEN" || !citizenId) {
+        this.failLoad("Debes iniciar sesión para ver tu historial de reportes.");
+        void this.router.navigate(["/login"]);
         return;
       }
 
-      this.reportService.getCitizenHistory(citizenId).subscribe({
+      this.reportService.getCitizenReportHistory(citizenId, this.getStatusFilterParam()).subscribe({
         next: (reports) => this.finishLoad(reports.map((report) => this.mapReport(report))),
-        error: () => this.failLoad("No se pudieron cargar los reportes."),
+        error: (error: HttpErrorResponse) => this.handleCitizenHistoryError(error),
       });
       return;
     }
@@ -410,17 +420,62 @@ export class ReportsComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  private mapReport(report: ReportSummary): ViewItem {
+  private mapReport(report: ReportResponse | ReportSummary): ViewItem {
     return {
       numericId: report.id,
       id: report.reportCode || "#" + report.id,
       tipo: this.getIncidentTypesLabel(report),
-      lugar: this.getLocationLabel(report),
+      lugar: this.getLocationLabel(report.location),
       fecha: this.formatDate(report.createdAt),
-      estado: this.mapStatus(report.status),
-      description: report.description,
+      estado: this.getStatusLabel(report.status),
+      description: report.description || "-",
       createdAt: report.createdAt,
     };
+  }
+
+  private getStatusFilterParam(): string | undefined {
+    const statusMap: Record<string, string> = {
+      Recibido: "RECEIVED",
+      Derivado: "DERIVED",
+      Completado: "ORDER_COMPLETED",
+    };
+
+    return statusMap[this.selectedStatus];
+  }
+
+  private getIncidentTypesLabel(report: ReportResponse | ReportSummary): string {
+    const incidentTypes = report.incidentTypes || [];
+    const labels = incidentTypes
+      .map((type) => this.getIncidentTypeLabel(type))
+      .filter((label) => label.length > 0);
+
+    return labels.length > 0 ? labels.join(", ") : "Incidente";
+  }
+
+  private getIncidentTypeLabel(type: string | IncidentTypeResponse): string {
+    const name = typeof type === "string" ? type : type.name;
+    const typeMap: Record<string, string> = {
+      RESIDUOS_ORGANICOS: "Residuos orgánicos",
+      DESMONTE_RESIDUOS_CONSTRUCCION: "Desmonte o residuos de construcción",
+      RESIDUOS_PELIGROSOS_QUIMICOS: "Residuos peligrosos o químicos",
+      MUEBLES_OBJETOS_VOLUMINOSOS: "Muebles u objetos voluminosos",
+      RESIDUOS_COMERCIALES: "Residuos comerciales",
+      RESIDUOS_AREAS_PUBLICAS_VERDES: "Residuos en áreas públicas o verdes",
+      OTRO_TIPO_RESIDUO: "Otro tipo de residuo",
+    };
+
+    return typeMap[name] || name || "";
+  }
+
+  private getLocationLabel(location: string | LocationResponse | null | undefined): string {
+    if (!location) return "-";
+    if (typeof location === "string") return location;
+
+    const address = location.addressReference || "";
+    const area = [location.districtName, location.province].filter(Boolean).join(", ");
+
+    if (address && area) return `${address} - ${area}`;
+    return address || area || "-";
   }
 
   private mapWorkOrder(order: WorkOrderSummary): ViewItem {
@@ -437,79 +492,18 @@ export class ReportsComponent implements OnInit {
     };
   }
 
-  private clearReportDetail(): void {
-    this.selectedReportDetail = null;
-    this.detailLoading = false;
-    this.detailError = "";
+  private handleCitizenHistoryError(error: HttpErrorResponse): void {
+    if (error.status === 401 || error.status === 403) {
+      this.failLoad("Debes iniciar sesión para ver tu historial de reportes.");
+      void this.router.navigate(["/login"]);
+      return;
+    }
+
+    this.failLoad("No se pudo cargar el historial de reportes.");
   }
 
-  getStatusLabel(status?: string): string {
-    const statusMap: Record<string, string> = {
-      RECEIVED: "Recibido",
-      DERIVED: "Derivado",
-      ORDER_COMPLETED: "Orden completada",
-    };
-
-    return status ? statusMap[status] || status : "-";
-  }
-
-  isStatusStepActive(status: string | undefined, step: "RECEIVED" | "DERIVED" | "ORDER_COMPLETED"): boolean {
-    const order: Record<string, number> = {
-      RECEIVED: 1,
-      DERIVED: 2,
-      ORDER_COMPLETED: 3,
-    };
-
-    return Boolean(status && order[status] >= order[step]);
-  }
-
-  getIncidentTypesLabel(report: ReportDisplaySource): string {
-    const incidentTypes = report.incidentTypes ?? [];
-    const labels = incidentTypes
-      .map((type) => typeof type === "string" ? this.getIncidentTypeLabel(type) : this.getIncidentTypeLabel(type.name))
-      .filter(Boolean);
-
-    return labels.length > 0 ? labels.join(", ") : "Incidente";
-  }
-
-  getLocationLabel(report: ReportDisplaySource): string {
-    return this.getLocationText(report.location);
-  }
-
-  getIncidentTypeLabel(name: string): string {
-    const incidentTypeMap: Record<string, string> = {
-      RESIDUOS_ORGANICOS: "Residuos orgánicos",
-      DESMONTE_RESIDUOS_CONSTRUCCION: "Desmonte o residuos de construcción",
-      RESIDUOS_PELIGROSOS_QUIMICOS: "Residuos peligrosos o químicos",
-      MUEBLES_OBJETOS_VOLUMINOSOS: "Muebles u objetos voluminosos",
-      RESIDUOS_COMERCIALES: "Residuos comerciales",
-      RESIDUOS_AREAS_PUBLICAS_VERDES: "Residuos en áreas públicas o verdes",
-      OTRO_TIPO_RESIDUO: "Otro tipo de residuo",
-    };
-
-    return incidentTypeMap[name] || name;
-  }
-
-  getLocationText(location: string | LocationResponse | null): string {
-    if (!location) return "Ubicación no disponible";
-    if (typeof location === "string") return location || "Ubicación no disponible";
-
-    const mainLocation = [location.addressReference, location.districtName].filter(Boolean).join(" - ");
-    const province = location.province ? `, ${location.province}` : "";
-    return mainLocation ? `${mainLocation}${province}` : "Ubicación no disponible";
-  }
-
-  getEvidenceUrl(evidence: EvidenceResponse): string {
-    return evidence.fileUrl || "";
-  }
-
-  getEvidenceLabel(evidence: EvidenceResponse): string {
-    return evidence.id ? `Evidencia ${evidence.id}` : "Evidencia del reporte";
-  }
-
-  isImageEvidence(evidence: EvidenceResponse): boolean {
-    if (evidence.fileType?.startsWith("image/")) return true;
-    return Boolean(evidence.fileUrl?.match(/\.(png|jpe?g|webp|gif)(\?.*)?$/i));
+  private getStatusLabel(status: string): string {
+    return this.mapStatus(status);
   }
 
   private mapStatus(status: string): string {
