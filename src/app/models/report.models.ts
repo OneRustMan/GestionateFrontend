@@ -6,13 +6,38 @@ export interface EvidenceRequest {
   contentType?: string;
 }
 
-export interface CreateReportRequest {
-  description: string;
-  location: string;
-  incidentTypeIds: number[];
-  evidences?: EvidenceRequest[];
+export interface IncidentTypeResponse {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+export interface EvidenceResponse {
+  id?: number;
+  fileName?: string;
+  url?: string;
+  contentType?: string;
+}
+
+export interface LocationResponse {
+  addressReference?: string;
   latitude?: number;
   longitude?: number;
+  districtName?: string;
+  province?: string;
+}
+
+export interface ReportResponse {
+  id: number;
+  reportCode: string;
+  citizenId: number;
+  description: string;
+  status: ReportStatus;
+  incidentTypes: IncidentTypeResponse[];
+  evidences: EvidenceResponse[];
+  location: LocationResponse;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ReportSummary {

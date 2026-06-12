@@ -4,8 +4,19 @@
       <h1>Reportar acumulación de basura</h1>
 
       <div class="form-group">
-        <label>Describe el problema</label>
-        <textarea placeholder="Detalla aquí..." [(ngModel)]="description"></textarea>
+        <label for="description">Describe el problema</label>
+        <textarea id="description" placeholder="Detalla aquí..." maxlength="2000" [(ngModel)]="description"></textarea>
+        <p class="field-hint">{{ description.length }}/2000</p>
+      </div>
+
+      <div class="form-group">
+        <label for="district">Distrito / Provincia</label>
+        <select id="district" class="select-control" [(ngModel)]="selectedDistrictId">
+          <option [ngValue]="null">Selecciona distrito / provincia</option>
+          <option *ngFor="let district of districts" [ngValue]="district.id">
+            {{ district.name }} - {{ district.province }}
+          </option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -16,8 +27,8 @@
               <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="black"/>
             </svg>
           </div>
-          <input type="text" placeholder="Escribe la dirección" [(ngModel)]="location">
-          <button class="btn-inside" (click)="openMapModal()">Ubica en el mapa</button>
+          <input type="text" placeholder="Selecciona una ubicación en el mapa" readonly [value]="addressReference">
+          <button type="button" class="btn-inside" (click)="openMapModal()">Ubica en el mapa</button>
         </div>
       </div>
 
@@ -25,15 +36,16 @@
         <label>Tipo de incidente</label>
         <div class="radio-group-box">
           <label class="radio-label" *ngFor="let type of incidentTypes">
-            <input type="radio" name="incidentType" [value]="type" [(ngModel)]="selectedIncidentType">
-            <span class="radio-custom"></span>
-            {{ type }}
+            <input type="checkbox" [checked]="isIncidentTypeSelected(type.id)" (change)="toggleIncidentType(type.id, $event)">
+            <span class="checkbox-custom"></span>
+            {{ type.name }}
           </label>
+          <p *ngIf="!incidentTypes.length" class="field-hint">No hay tipos de incidencia activos disponibles.</p>
         </div>
       </div>
 
       <div class="form-group">
-        <label>Agregar foto</label>
+        <label>Agregar fotos</label>
         <div class="input-with-button file-input-wrapper">
           <div class="icon-wrapper">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -41,16 +53,22 @@
               <path d="M20 6H16.83L15 4H9L7.17 6H4C2.9 6 2 6.9 2 8V19C2 20.1 2.9 21 4 21H20C21.1 21 22 20.1 22 19V8C22 6.9 21.1 6 20 6Z" fill="black"/>
             </svg>
           </div>
-          <input type="text" placeholder="Agregar foto" readonly [value]="selectedFileName">
-          <button class="btn-inside dark" (click)="triggerFileInput()">Cargar foto</button>
-          <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;" accept="image/*">
+          <input type="text" placeholder="1 a 3 evidencias fotográficas" readonly [value]="selectedFiles.length ? selectedFiles.length + ' archivo(s) seleccionado(s)' : ''">
+          <button type="button" class="btn-inside dark" (click)="triggerFileInput()">Cargar fotos</button>
+          <input type="file" (change)="onFileSelected($event)" style="display: none;" accept="image/*" multiple>
         </div>
+        <ul class="file-list" *ngIf="selectedFiles.length">
+          <li *ngFor="let file of selectedFiles; let index = index">
+            <span>{{ file.name }}</span>
+            <button type="button" class="btn-remove-file" (click)="removeFile(index)">Quitar</button>
+          </li>
+        </ul>
       </div>
 
       <div class="action-buttons">
         <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
-        <button class="btn-submit" (click)="onSubmit()" [disabled]="isSubmitting || !description.trim() || !location.trim() || !selectedIncidentType">{{ isSubmitting ? "Enviando..." : "Enviar reporte" }}</button>
-        <button class="btn-cancel" routerLink="/home">Cancelar</button>
+        <button type="button" class="btn-submit" (click)="onSubmit()" [disabled]="isSubmitting">{{ isSubmitting ? "Enviando..." : "Enviar reporte" }}</button>
+        <button type="button" class="btn-cancel" (click)="onCancel()">Cancelar</button>
       </div>
 
     </div>
@@ -78,18 +96,17 @@
   </div>
 </div>
 
-<!-- Map Modal -->
 <div class="modal-overlay" *ngIf="showMapModal">
   <div class="modal-content map-modal-content">
     <h2>Selecciona la ubicación</h2>
     <p class="modal-subtitle">Haz clic en el mapa para ubicar el incidente</p>
     <div id="map" class="map-container"></div>
-    <div class="modal-details" style="margin-top: 1rem; margin-bottom: 1rem; text-align: center;">
-      <p style="font-weight: bold; margin-bottom: 0;">{{ location || 'Selecciona un punto...' }}</p>
+    <div class="modal-details map-selection-details">
+      <p>{{ mapAddressReference || 'Selecciona un punto...' }}</p>
     </div>
     <div class="modal-actions">
-      <button class="btn-modal-primary" (click)="confirmLocation()">Confirmar ubicación</button>
-      <button class="btn-modal-secondary" (click)="closeMapModal()">Cancelar</button>
+      <button type="button" class="btn-modal-primary" (click)="confirmLocation()">Confirmar ubicación</button>
+      <button type="button" class="btn-modal-secondary" (click)="closeMapModal()">Cancelar</button>
     </div>
   </div>
 </div>
