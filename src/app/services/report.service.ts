@@ -6,7 +6,6 @@ import {
   ReportDetail,
   ReportFilters,
   ReportResponse,
-  ReportSummary,
 } from '../models/report.models';
 
 @Injectable({ providedIn: 'root' })
@@ -19,10 +18,25 @@ export class ReportService {
     return this.http.post<ReportResponse>(`${this.apiUrl}/reports`, formData);
   }
 
-  getCitizenHistory(citizenId: number, filters: ReportFilters = {}): Observable<ReportSummary[]> {
-    return this.http.get<ReportSummary[]>(
+  getCitizenReportHistory(citizenId: number, status?: string, incidentTypeId?: number): Observable<ReportResponse[]> {
+    const filters: ReportFilters = {};
+    if (status) {
+      filters.status = status;
+    } else if (incidentTypeId) {
+      filters.incidentTypeId = incidentTypeId;
+    }
+
+    return this.http.get<ReportResponse[]>(
       `${this.apiUrl}/reports/citizens/${citizenId}/history`,
       { params: this.buildParams(filters) },
+    );
+  }
+
+  getCitizenHistory(citizenId: number, filters: ReportFilters = {}): Observable<ReportResponse[]> {
+    return this.getCitizenReportHistory(
+      citizenId,
+      filters.status,
+      filters.status ? undefined : filters.incidentTypeId,
     );
   }
 

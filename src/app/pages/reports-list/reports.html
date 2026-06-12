@@ -82,8 +82,16 @@
     </aside>
 
     <section class="reports-list">
-      <div *ngIf="!isLoading && filteredReportsList.length === 0" class="no-results-message">
-        No se encontraron reportes con los criterios seleccionados.
+      <div *ngIf="isLoading" class="no-results-message">
+        Cargando reportes...
+      </div>
+
+      <div *ngIf="!isLoading && errorMessage" class="no-results-message">
+        {{ errorMessage }}
+      </div>
+
+      <div *ngIf="!isLoading && !errorMessage && filteredReportsList.length === 0" class="no-results-message">
+        {{ currentUserRole === 'ciudadano' && reportsList.length === 0 && selectedStatus === 'all' && !searchTerm.trim() ? 'Aún no tienes reportes registrados' : 'No se encontraron reportes con los criterios seleccionados.' }}
       </div>
 
       <ng-container *ngFor="let reporte of paginatedReportsList">

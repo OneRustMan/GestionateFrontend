@@ -5,7 +5,7 @@ import { filter, finalize } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { ReportService } from '../../services/report.service';
-import { ReportSummary } from '../../models/report.models';
+import { ReportResponse } from '../../models/report.models';
 
 @Component({
   selector: 'app-home',
@@ -17,7 +17,7 @@ import { ReportSummary } from '../../models/report.models';
 export class HomeComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly cdr = inject(ChangeDetectorRef);
-  recentReports: ReportSummary[] = [];
+  recentReports: ReportResponse[] = [];
   isLoading = false;
   errorMessage = "";
 
@@ -90,11 +90,11 @@ export class HomeComponent implements OnInit {
     return desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
   }
 
-  getReportTitle(report: ReportSummary): string {
+  getReportTitle(report: ReportResponse): string {
     return `Reporte ${report.reportCode || '#' + report.id}`;
   }
 
-  getReportLocation(report: ReportSummary): string {
+  getReportLocation(report: ReportResponse): string {
     const loc = report.location as any;
     if (!loc) return '-';
     if (typeof loc === 'string') return loc;
