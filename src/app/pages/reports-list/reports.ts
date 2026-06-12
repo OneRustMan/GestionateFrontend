@@ -1,4 +1,5 @@
 import { Component, DestroyRef, OnInit, inject, ChangeDetectorRef } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { CommonModule } from "@angular/common";
 import { Router, NavigationEnd } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -7,7 +8,7 @@ import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
-import { ReportSummary } from "../../models/report.models";
+import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReportResponse, ReportSummary } from "../../models/report.models";
 import { WorkOrderSummary } from "../../models/work-order.models";
 
 interface ViewItem {
@@ -21,6 +22,8 @@ interface ViewItem {
   createdAt?: string;
   priority?: string;
 }
+
+type ReportDisplaySource = Pick<ReportSummary | ReportResponse, "incidentTypes" | "location">;
 
 @Component({
   selector: "app-reports",
@@ -42,6 +45,9 @@ export class ReportsComponent implements OnInit {
 
   reportsList: ViewItem[] = [];
   selectedReport: ViewItem | null = null;
+  selectedReportDetail: ReportResponse | null = null;
+  detailLoading = false;
+  detailError = "";
 
   currentPage = 1;
   pageSize = 3;
@@ -142,6 +148,7 @@ export class ReportsComponent implements OnInit {
       const stillExists = this.filteredReportsList.some(item => item.numericId === this.selectedReport!.numericId);
       if (!stillExists) {
         this.selectedReport = null;
+        this.clearReportDetail();
       }
     }
   }
@@ -195,6 +202,7 @@ export class ReportsComponent implements OnInit {
 
   determinarRolPorUrl(url: string) {
     this.selectedReport = null;
+    this.clearReportDetail();
     this.showCoordinarForm = false;
     this.showDenegarForm = false;
 
@@ -222,6 +230,55 @@ export class ReportsComponent implements OnInit {
     this.selectedReport = report;
     this.showCoordinarForm = false;
     this.showDenegarForm = false;
+    this.clearReportDetail();
+
+    if (this.currentView === "ciudadano-mis-reportes") {
+      this.loadCitizenReportDetail(report);
+    }
+  }
+
+  private loadCitizenReportDetail(report: ViewItem): void {
+    const citizenId = this.authService.getProfileId();
+
+    if (this.authService.getRole() !== "CITIZEN" || !citizenId) {
+      void this.router.navigate(["/login"]);
+      return;
+    }
+
+    if (!report.numericId) {
+      this.detailError = "Reporte no encontrado.";
+      return;
+    }
+
+    const selectedReportId = report.numericId;
+    this.detailLoading = true;
+    this.detailError = "";
+
+    this.reportService.getCitizenReportDetail(citizenId, selectedReportId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (detail) => {
+        if (this.selectedReport?.numericId !== selectedReportId) return;
+        this.selectedReportDetail = detail;
+        this.detailLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error: HttpErrorResponse) => {
+        if (this.selectedReport?.numericId !== selectedReportId) return;
+        this.detailLoading = false;
+
+        if (error.status === 404) {
+          this.detailError = "Reporte no encontrado.";
+        } else if (error.status === 401 || error.status === 403) {
+          this.authService.clearSession();
+          void this.router.navigate(["/login"]);
+        } else {
+          this.detailError = "No se pudo cargar el detalle del reporte.";
+        }
+
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   derivar() {
@@ -357,8 +414,8 @@ export class ReportsComponent implements OnInit {
     return {
       numericId: report.id,
       id: report.reportCode || "#" + report.id,
-      tipo: report.incidentTypes?.join(", ") || "Incidente",
-      lugar: report.location,
+      tipo: this.getIncidentTypesLabel(report),
+      lugar: this.getLocationLabel(report),
       fecha: this.formatDate(report.createdAt),
       estado: this.mapStatus(report.status),
       description: report.description,
@@ -380,6 +437,81 @@ export class ReportsComponent implements OnInit {
     };
   }
 
+  private clearReportDetail(): void {
+    this.selectedReportDetail = null;
+    this.detailLoading = false;
+    this.detailError = "";
+  }
+
+  getStatusLabel(status?: string): string {
+    const statusMap: Record<string, string> = {
+      RECEIVED: "Recibido",
+      DERIVED: "Derivado",
+      ORDER_COMPLETED: "Orden completada",
+    };
+
+    return status ? statusMap[status] || status : "-";
+  }
+
+  isStatusStepActive(status: string | undefined, step: "RECEIVED" | "DERIVED" | "ORDER_COMPLETED"): boolean {
+    const order: Record<string, number> = {
+      RECEIVED: 1,
+      DERIVED: 2,
+      ORDER_COMPLETED: 3,
+    };
+
+    return Boolean(status && order[status] >= order[step]);
+  }
+
+  getIncidentTypesLabel(report: ReportDisplaySource): string {
+    const incidentTypes = report.incidentTypes ?? [];
+    const labels = incidentTypes
+      .map((type) => typeof type === "string" ? this.getIncidentTypeLabel(type) : this.getIncidentTypeLabel(type.name))
+      .filter(Boolean);
+
+    return labels.length > 0 ? labels.join(", ") : "Incidente";
+  }
+
+  getLocationLabel(report: ReportDisplaySource): string {
+    return this.getLocationText(report.location);
+  }
+
+  getIncidentTypeLabel(name: string): string {
+    const incidentTypeMap: Record<string, string> = {
+      RESIDUOS_ORGANICOS: "Residuos orgánicos",
+      DESMONTE_RESIDUOS_CONSTRUCCION: "Desmonte o residuos de construcción",
+      RESIDUOS_PELIGROSOS_QUIMICOS: "Residuos peligrosos o químicos",
+      MUEBLES_OBJETOS_VOLUMINOSOS: "Muebles u objetos voluminosos",
+      RESIDUOS_COMERCIALES: "Residuos comerciales",
+      RESIDUOS_AREAS_PUBLICAS_VERDES: "Residuos en áreas públicas o verdes",
+      OTRO_TIPO_RESIDUO: "Otro tipo de residuo",
+    };
+
+    return incidentTypeMap[name] || name;
+  }
+
+  getLocationText(location: string | LocationResponse | null): string {
+    if (!location) return "Ubicación no disponible";
+    if (typeof location === "string") return location || "Ubicación no disponible";
+
+    const mainLocation = [location.addressReference, location.districtName].filter(Boolean).join(" - ");
+    const province = location.province ? `, ${location.province}` : "";
+    return mainLocation ? `${mainLocation}${province}` : "Ubicación no disponible";
+  }
+
+  getEvidenceUrl(evidence: EvidenceResponse): string {
+    return evidence.fileUrl || "";
+  }
+
+  getEvidenceLabel(evidence: EvidenceResponse): string {
+    return evidence.id ? `Evidencia ${evidence.id}` : "Evidencia del reporte";
+  }
+
+  isImageEvidence(evidence: EvidenceResponse): boolean {
+    if (evidence.fileType?.startsWith("image/")) return true;
+    return Boolean(evidence.fileUrl?.match(/\.(png|jpe?g|webp|gif)(\?.*)?$/i));
+  }
+
   private mapStatus(status: string): string {
     const statusMap: Record<string, string> = {
       RECEIVED: "Recibido",
@@ -393,7 +525,7 @@ export class ReportsComponent implements OnInit {
     return statusMap[status] || status;
   }
 
-  private formatDate(value?: string): string {
+  formatDate(value?: string): string {
     if (!value) return "-";
     return new Intl.DateTimeFormat("es-PE").format(new Date(value));
   }

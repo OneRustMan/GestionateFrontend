@@ -3,7 +3,6 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
-  ReportDetail,
   ReportFilters,
   ReportResponse,
   ReportSummary,
@@ -26,9 +25,9 @@ export class ReportService {
     );
   }
 
-  getCitizenReportDetail(citizenId: number, reportId: number): Observable<ReportDetail> {
-    return this.http.get<ReportDetail>(
-      `${this.apiUrl}/reports/citizens/${citizenId}/reports/${reportId}`,
+  getCitizenReportDetail(citizenId: number, reportId: number): Observable<ReportResponse> {
+    return this.http.get<ReportResponse>(
+      `${this.apiUrl}/reports/citizens/${citizenId}/history/${reportId}`,
     );
   }
 
