@@ -43,6 +43,18 @@ export interface ReportResponse {
   updatedAt: string;
 }
 
+export interface ReceptionReportInboxResponse {
+  reportId: number;
+  reportCode: string;
+  citizenId: number;
+  citizenFullName: string;
+  description: string;
+  status: ReportStatus;
+  incidentTypes: IncidentTypeResponse[];
+  location: LocationResponse | null;
+  createdAt: string;
+}
+
 export interface ReportSummary {
   id: number;
   reportCode: string;
