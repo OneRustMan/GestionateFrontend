@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment';
 import {
   CompleteWorkOrderRequest,
   WorkOrderDetail,
+  WorkOrderDetailResponse,
   WorkOrderPriority,
   WorkOrderResponse,
 } from '../models/work-order.models';
@@ -35,9 +36,13 @@ export class WorkOrderService {
     return this.http.get<WorkOrderResponse[]>(`${this.apiUrl}/work-orders/completed`, { params });
   }
 
+  getWorkOrderDetail(cleaningStaffId: number, workOrderId: number): Observable<WorkOrderDetailResponse> {
+    const params = new HttpParams().set("cleaningStaffId", cleaningStaffId);
+    return this.http.get<WorkOrderDetailResponse>(`${this.apiUrl}/work-orders/${workOrderId}/detail`, { params });
+  }
+
   getDetail(workOrderId: number, cleaningStaffId: number): Observable<WorkOrderDetail> {
-    const params = new HttpParams().set('cleaningStaffId', cleaningStaffId);
-    return this.http.get<WorkOrderDetail>(`${this.apiUrl}/work-orders/${workOrderId}/detail`, { params });
+    return this.getWorkOrderDetail(cleaningStaffId, workOrderId);
   }
 
   take(workOrderId: number, cleaningStaffId: number): Observable<WorkOrderDetail> {

@@ -1,4 +1,4 @@
-import { IncidentTypeResponse, LocationResponse, ReportStatus } from "./report.models";
+import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReportStatus } from "./report.models";
 
 export type WorkOrderPriority = "LOW" | "MEDIUM" | "HIGH";
 
@@ -39,7 +39,24 @@ export interface WorkOrderResponse {
 }
 
 export type WorkOrderSummary = WorkOrderResponse;
-export type WorkOrderDetail = WorkOrderResponse;
+
+export interface WorkOrderDetailResponse {
+  workOrderId: number;
+  orderCode: string;
+  reportId: number;
+  reportCode: string;
+  description: string;
+  reportStatus: ReportStatus;
+  priority: WorkOrderPriority;
+  workOrderStatus: WorkOrderStatus;
+  incidentTypes: IncidentTypeResponse[];
+  location: LocationResponse | null;
+  evidences: EvidenceResponse[];
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export type WorkOrderDetail = WorkOrderDetailResponse;
 
 export interface CompleteWorkOrderRequest {
   observation: string;

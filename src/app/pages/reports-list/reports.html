@@ -148,7 +148,7 @@
     </section>
 
     <section class="report-details" *ngIf="selectedReport">
-      <h3>Detalle del reporte</h3>
+      <h3>{{ currentUserRole === 'operativo' ? 'Detalle de la orden' : 'Detalle del reporte' }}</h3>
 
       <ng-container *ngIf="currentView === 'ciudadano-mis-reportes'; else operationalDetail">
         <div *ngIf="detailLoading" class="detail-loading">Cargando detalle...</div>
@@ -345,82 +345,78 @@
         </ng-container>
 
         <ng-template #legacyOperationalDetail>
-        <div class="detail-section">
-          <p class="section-title">Descripción del problema</p>
-          <div class="description-box">{{ selectedReport.description }}</div>
-        </div>
+          <div *ngIf='detailLoading' class='detail-loading'>Cargando detalle...</div>
+          <div *ngIf='!detailLoading && detailError' class='detail-error'>{{ detailError }}</div>
 
-        <ng-container *ngIf="currentUserRole !== 'operativo' || (selectedReport.estado === 'Pendiente de Recepción' && !showCoordinarForm)">
-          <div class="detail-section" *ngIf="!showDenegarForm">
-            <p class="section-title">Foto</p>
-            <div class="photos-grid">
-              <div class="photo-placeholder">IMG</div>
-              <div class="photo-placeholder">IMG</div>
-              <div class="photo-placeholder">IMG</div>
+          <ng-container *ngIf='!detailLoading && !detailError && selectedWorkOrderDetail as detail'>
+            <div class='detail-section'>
+              <p class='section-title'>Código de orden</p>
+              <div class='description-box compact-detail'>{{ detail.orderCode }}</div>
             </div>
-          </div>
-          <div class="detail-section" *ngIf="!showDenegarForm">
-            <p class="section-title">Ver ubicación</p>
-            <div class="map-placeholder"><p>Mapa de {{ selectedReport.lugar }}</p></div>
-          </div>
-        </ng-container>
 
-        <ng-container *ngIf="currentView === 'recepcionista-recibidos'">
-          <div class="detail-section" *ngIf="!showDenegarForm" style="margin-top: 1.5rem;">
-            <p class="section-title">Estado del reporte</p>
-            <ul class="status-timeline">
-              <li class="active"><span class="circle"></span> 1. Recibido</li>
-              <li><span class="circle"></span> 2. Derivado</li>
-              <li><span class="circle"></span> 3. Tarea completada</li>
-            </ul>
-          </div>
-
-          <div class="detail-section" *ngIf="showDenegarForm" style="background-color: #F8F9FA; padding: 1.5rem; border-radius: 12px; border: 1px solid #E0E0E0; margin-top: 1rem;">
-            <p class="section-title" style="font-weight: bold; margin-bottom: 1rem; font-size: 1rem;">Denegar reporte</p>
-            <p style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #555;">Seleccione motivo</p>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
-              <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Descripción mal detallada</label>
-              <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Fotos no coinciden a la descripción</label>
-              <label class="radio-label" style="background: #EFEFEF; padding: 0.8rem; border-radius: 8px; display: block; border: 1px solid #ddd; cursor: pointer;"><input type="radio" name="motivo"> Reporte repetido</label>
+            <div class='detail-section'>
+              <p class='section-title'>Datos de la orden</p>
+              <div class='description-box compact-detail'>
+                <p>Estado: {{ getWorkOrderStatusLabel(detail.workOrderStatus) }}</p>
+                <p>Prioridad: {{ getPriorityLabel(detail.priority) }}</p>
+                <p>Creada: {{ formatDate(detail.createdAt) }}</p>
+                <p *ngIf='detail.completedAt'>Completada: {{ formatDate(detail.completedAt) }}</p>
+              </div>
             </div>
-            <input type="text" placeholder="Otro Especificar..." style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #ccc; background-color: #FFF; margin-bottom: 1.5rem; font-family: inherit;">
-            <button (click)="confirmarDenegacion()" style="width: 100%; background-color: #EB5757; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Denegar</button>
-          </div>
-        </ng-container>
 
-        <div class="detail-section" *ngIf="currentView === 'recepcionista-derivados' || (currentUserRole === 'operativo' && (selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'))" style="margin-top: 1.5rem;">
-          <p class="section-title">Estado del reporte</p>
-          <ul class="status-timeline">
-            <li class="active"><span class="circle"></span> Reporte enviado al área encargada</li>
-            <li [class.active]="selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'"><span class="circle"></span> Recepción del reporte confirmada</li>
-            <li [class.active]="selectedReport.estado === 'En Proceso' || selectedReport.estado === 'Completado'"><span class="circle"></span> En proceso de ejecución</li>
-            <li [class.active]="selectedReport.estado === 'Completado'"><span class="circle"></span> Completado</li>
-          </ul>
-          <button *ngIf="currentUserRole === 'operativo' && selectedReport.estado === 'Completado'" (click)="registrarInforme()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 1rem;">Registrar informe</button>
-        </div>
-
-        <ng-container *ngIf="currentUserRole === 'operativo'">
-          <div class="detail-section" *ngIf="selectedReport.estado === 'Pendiente de Recepción' && !showCoordinarForm" style="margin-top: 1.5rem;">
-            <button (click)="abrirFormularioCoordinar()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Coordinar equipo</button>
-          </div>
-
-          <div class="detail-section" *ngIf="selectedReport.estado === 'Pendiente de Recepción' && showCoordinarForm" style="background-color: #F8F9FA; padding: 1.5rem; border-radius: 12px; border: 1px solid #E0E0E0; margin-top: 1rem;">
-            <p class="section-title" style="font-weight: bold; margin-bottom: 1rem; font-size: 1rem;">Coordinar equipo</p>
-            <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 0.5rem;">Elegir equipo adecuado</p>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
-              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de barrenderos</label>
-              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de recolectores de basura</label>
-              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="equipo"> Equipo de limpieza pública</label>
+            <div class='detail-section'>
+              <p class='section-title'>Código de reporte</p>
+              <div class='description-box compact-detail'>{{ detail.reportCode }}</div>
             </div>
-            <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 0.5rem;">Designar prioridad</p>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
-              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Leve</label>
-              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Medio</label>
-              <label class="radio-label" style="font-size: 0.9rem;"><input type="radio" name="prioridad"> Grave</label>
+
+            <div class='detail-section'>
+              <p class='section-title'>Estado del reporte</p>
+              <div class='badge status-detail-badge'>{{ getStatusLabel(detail.reportStatus) }}</div>
             </div>
-            <button (click)="confirmarCoordinacion()" style="width: 100%; background-color: #27AE60; color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">Coordinar equipo</button>
-          </div>
-        </ng-container>
+
+            <div class='detail-section'>
+              <p class='section-title'>Descripción del reporte</p>
+              <div class='description-box'>{{ detail.description }}</div>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Tipos de incidencia</p>
+              <div class='detail-chips' *ngIf='detail.incidentTypes.length > 0; else noWorkOrderIncidentTypes'>
+                <span class='detail-chip' *ngFor='let type of detail.incidentTypes'>{{ getIncidentTypeLabel(type) }}</span>
+              </div>
+              <ng-template #noWorkOrderIncidentTypes>
+                <div class='description-box compact-detail'>Sin tipo de incidencia</div>
+              </ng-template>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Ubicación</p>
+              <div class='description-box location-detail'>
+                <p>{{ getLocationText(detail.location) }}</p>
+                <ng-container *ngIf='detail.location'>
+                  <p>Latitud: {{ detail.location.latitude }}</p>
+                  <p>Longitud: {{ detail.location.longitude }}</p>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Evidencias</p>
+              <div class='photos-grid evidence-grid' *ngIf='getVisualEvidences(detail.evidences).length > 0; else noWorkOrderEvidences'>
+                <ng-container *ngFor='let evidence of getVisualEvidences(detail.evidences)'>
+                  <a *ngIf='getEvidenceUrl(evidence); else workOrderEvidencePlaceholder' [href]='getEvidenceUrl(evidence)' target='_blank' rel='noopener noreferrer' class='evidence-link'>
+                    <img [src]='getEvidenceUrl(evidence)' [alt]='getEvidenceLabel(evidence)' class='evidence-image'>
+                  </a>
+                  <ng-template #workOrderEvidencePlaceholder>
+                    <div class='photo-placeholder'>{{ getEvidenceLabel(evidence) }}</div>
+                  </ng-template>
+                </ng-container>
+              </div>
+              <ng-template #noWorkOrderEvidences>
+                <div class='photo-placeholder evidence-empty'>Sin evidencia visual</div>
+              </ng-template>
+            </div>
+          </ng-container>
         </ng-template>
       </ng-template>
     </section>
