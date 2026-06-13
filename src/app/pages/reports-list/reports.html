@@ -416,6 +416,20 @@
                 <div class='photo-placeholder evidence-empty'>Sin evidencia visual</div>
               </ng-template>
             </div>
+
+            <div class="detail-section derive-section" *ngIf="canShowTakeSection || takeError || takeSuccess">
+              <p class="section-title derive-title">Tomar orden operativa</p>
+              <div class="description-box compact-detail" *ngIf="canShowTakeSection">
+                Al tomar esta orden, quedará asignada a tu usuario operativo y pasará a estado En progreso.
+              </div>
+
+              <div *ngIf="takeError" class="derive-error-message">{{ takeError }}</div>
+              <div *ngIf="takeSuccess" class="derive-success-message compact-message">{{ takeSuccess }}</div>
+
+              <button type="button" class="derive-button" *ngIf="canShowTakeSection" [disabled]="takeLoading" (click)="takeSelectedWorkOrder()">
+                {{ takeLoading ? "Tomando orden..." : "Tomar orden" }}
+              </button>
+            </div>
           </ng-container>
         </ng-template>
       </ng-template>
