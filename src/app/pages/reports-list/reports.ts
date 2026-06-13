@@ -65,6 +65,9 @@ export class ReportsComponent implements OnInit {
   deriveLoading = false;
   deriveError = "";
   deriveSuccess = "";
+  takeLoading = false;
+  takeError = "";
+  takeSuccess = "";
   searchTerm = "";
 
   get filteredReportsList(): ViewItem[] {
@@ -155,6 +158,7 @@ export class ReportsComponent implements OnInit {
         this.selectedReport = null;
         this.clearReportDetail();
         this.clearDeriveState();
+        this.clearTakeState();
       }
     }
   }
@@ -200,6 +204,7 @@ export class ReportsComponent implements OnInit {
       this.selectedReport = null;
       this.clearReportDetail();
       this.clearDeriveState();
+      this.clearTakeState();
       this.loadItems();
       return;
     }
@@ -217,6 +222,7 @@ export class ReportsComponent implements OnInit {
       this.selectedReport = null;
       this.clearReportDetail();
       this.clearDeriveState();
+      this.clearTakeState();
       this.cdr.detectChanges();
       return;
     }
@@ -251,6 +257,7 @@ export class ReportsComponent implements OnInit {
     this.selectedReport = null;
     this.clearReportDetail();
     this.clearDeriveState();
+    this.clearTakeState();
     this.showCoordinarForm = false;
     this.showDenegarForm = false;
 
@@ -284,6 +291,7 @@ export class ReportsComponent implements OnInit {
     this.showDenegarForm = false;
     this.clearReportDetail();
     this.clearDeriveState();
+    this.clearTakeState();
 
     if (this.currentView === "ciudadano-mis-reportes") {
       this.loadCitizenReportDetail(report);
@@ -507,6 +515,74 @@ export class ReportsComponent implements OnInit {
     }
 
     return "No se pudo derivar el reporte. Inténtalo nuevamente.";
+  }
+
+  get canShowTakeSection(): boolean {
+    return this.currentView === "operativo-asignadas"
+      && this.selectedWorkOrderDetail?.workOrderStatus === "PENDING";
+  }
+
+  takeSelectedWorkOrder(): void {
+    this.takeError = "";
+    this.takeSuccess = "";
+
+    const detail = this.selectedWorkOrderDetail;
+    if (!detail || detail.workOrderStatus !== "PENDING") {
+      return;
+    }
+
+    const cleaningStaffId = this.authService.getProfileId();
+    const workOrderId = detail.workOrderId;
+
+    if (this.authService.getRole() !== "CLEANING_OPERATIONS" || !cleaningStaffId || !workOrderId) {
+      void this.router.navigate(["/home"]);
+      return;
+    }
+
+    this.takeLoading = true;
+
+    this.workOrderService.takeWorkOrder(cleaningStaffId, workOrderId).pipe(
+      finalize(() => {
+        this.takeLoading = false;
+        this.cdr.detectChanges();
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (response) => {
+        this.takeSuccess = "Orden tomada correctamente";
+        this.selectedWorkOrderDetail = {
+          ...detail,
+          workOrderStatus: response.workOrderStatus,
+        };
+
+        if (this.selectedReport?.numericId === workOrderId) {
+          this.selectedReport.estado = this.getWorkOrderStatusLabel(response.workOrderStatus);
+        }
+
+        this.loadItems();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.takeError = this.getTakeWorkOrderErrorMessage(error);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private getTakeWorkOrderErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 400) {
+      return "La orden ya fue asignada.";
+    }
+
+    if (error.status === 404) {
+      return "La orden ya no está disponible.";
+    }
+
+    if (error.status === 401 || error.status === 403) {
+      this.authService.clearSession();
+      void this.router.navigate(["/login"]);
+    }
+
+    return "No se pudo tomar la orden. Inténtalo nuevamente.";
   }
 
   private getBackendErrorText(error: HttpErrorResponse): string {
@@ -802,6 +878,12 @@ export class ReportsComponent implements OnInit {
     if (clearSuccess) {
       this.deriveSuccess = "";
     }
+  }
+
+  private clearTakeState(): void {
+    this.takeLoading = false;
+    this.takeError = "";
+    this.takeSuccess = "";
   }
 
   clearReportDetail(): void {

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   CompleteWorkOrderRequest,
+  TakeWorkOrderResponse,
   WorkOrderDetail,
   WorkOrderDetailResponse,
   WorkOrderPriority,
@@ -45,9 +46,13 @@ export class WorkOrderService {
     return this.getWorkOrderDetail(cleaningStaffId, workOrderId);
   }
 
-  take(workOrderId: number, cleaningStaffId: number): Observable<WorkOrderDetail> {
-    const params = new HttpParams().set('cleaningStaffId', cleaningStaffId);
-    return this.http.patch<WorkOrderDetail>(`${this.apiUrl}/work-orders/${workOrderId}/take`, {}, { params });
+  takeWorkOrder(cleaningStaffId: number, workOrderId: number): Observable<TakeWorkOrderResponse> {
+    const params = new HttpParams().set("cleaningStaffId", cleaningStaffId);
+    return this.http.patch<TakeWorkOrderResponse>(`${this.apiUrl}/work-orders/${workOrderId}/take`, null, { params });
+  }
+
+  take(workOrderId: number, cleaningStaffId: number): Observable<TakeWorkOrderResponse> {
+    return this.takeWorkOrder(cleaningStaffId, workOrderId);
   }
 
   complete(

@@ -58,6 +58,15 @@ export interface WorkOrderDetailResponse {
 
 export type WorkOrderDetail = WorkOrderDetailResponse;
 
+export interface TakeWorkOrderResponse {
+  workOrderId: number;
+  orderCode: string;
+  reportId: number;
+  reportCode: string;
+  cleaningStaffId: number;
+  workOrderStatus: WorkOrderStatus;
+}
+
 export interface CompleteWorkOrderRequest {
   observation: string;
 }
