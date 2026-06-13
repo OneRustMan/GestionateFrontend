@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   CompleteWorkOrderRequest,
+  CompleteWorkOrderResponse,
   TakeWorkOrderResponse,
   WorkOrderDetail,
   WorkOrderDetailResponse,
@@ -55,16 +56,24 @@ export class WorkOrderService {
     return this.takeWorkOrder(cleaningStaffId, workOrderId);
   }
 
+  completeWorkOrder(
+    cleaningStaffId: number,
+    workOrderId: number,
+    request: CompleteWorkOrderRequest,
+  ): Observable<CompleteWorkOrderResponse> {
+    const params = new HttpParams().set("cleaningStaffId", cleaningStaffId);
+    return this.http.patch<CompleteWorkOrderResponse>(
+      this.apiUrl + "/work-orders/" + workOrderId + "/complete",
+      request,
+      { params },
+    );
+  }
+
   complete(
     workOrderId: number,
     cleaningStaffId: number,
     request: CompleteWorkOrderRequest,
-  ): Observable<WorkOrderDetail> {
-    const params = new HttpParams().set('cleaningStaffId', cleaningStaffId);
-    return this.http.patch<WorkOrderDetail>(
-      `${this.apiUrl}/work-orders/${workOrderId}/complete`,
-      request,
-      { params },
-    );
+  ): Observable<CompleteWorkOrderResponse> {
+    return this.completeWorkOrder(cleaningStaffId, workOrderId, request);
   }
 }

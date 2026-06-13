@@ -6,12 +6,18 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AuthService } from "../../services/auth.service";
 import { ReceptionService } from "../../services/reception.service";
 import { ReportService } from "../../services/report.service";
+import { WorkOrderService } from "../../services/work-order.service";
 import { LocationResponse, ReceptionReportInboxResponse, ReportResponse } from "../../models/report.models";
+import { WorkOrderResponse } from "../../models/work-order.models";
 
 interface RecentReportItem {
   reportCode: string;
   description: string;
   location: string;
+  orderCode?: string;
+  priorityLabel?: string;
+  statusLabel?: string;
+  createdAt?: string;
 }
 
 @Component({
@@ -33,6 +39,7 @@ export class HomeComponent implements OnInit {
     private readonly authService: AuthService,
     private readonly reportService: ReportService,
     private readonly receptionService: ReceptionService,
+    private readonly workOrderService: WorkOrderService,
     private readonly router: Router
   ) { }
 
@@ -179,10 +186,33 @@ export class HomeComponent implements OnInit {
   }
 
   private loadCleaningRecentOrders(): void {
-    this.recentReports = [];
-    this.isLoading = false;
-    this.errorMessage = "";
-    this.cdr.detectChanges();
+    const cleaningStaffId = this.authService.getProfileId();
+    if (this.authService.getRole() !== "CLEANING_OPERATIONS" || !cleaningStaffId) {
+      this.recentReports = [];
+      this.isLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.startLoading();
+
+    this.workOrderService.getAvailableWorkOrders(cleaningStaffId).pipe(
+      finalize(() => this.stopLoading())
+    ).subscribe({
+      next: (orders) => {
+        this.recentReports = Array.isArray(orders)
+          ? [...orders]
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .slice(0, 2)
+              .map((order) => this.mapWorkOrder(order))
+          : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.errorMessage = "No se pudieron cargar las órdenes asignadas.";
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   private startLoading(): void {
@@ -212,13 +242,46 @@ export class HomeComponent implements OnInit {
     };
   }
 
+  private mapWorkOrder(order: WorkOrderResponse): RecentReportItem {
+    return {
+      orderCode: order.orderCode || "Orden #" + order.workOrderId,
+      reportCode: order.reportCode || "#" + order.reportId,
+      description: order.description || "",
+      location: this.formatLocation(order.location),
+      priorityLabel: this.getPriorityLabel(order.priority),
+      statusLabel: this.getWorkOrderStatusLabel(order.workOrderStatus),
+      createdAt: order.createdAt,
+    };
+  }
+
+  private getPriorityLabel(priority: string): string {
+    const priorityMap: Record<string, string> = {
+      LOW: "Baja",
+      MEDIUM: "Media",
+      HIGH: "Alta",
+    };
+
+    return priorityMap[priority] || priority || "-";
+  }
+
+  private getWorkOrderStatusLabel(status: string): string {
+    const statusMap: Record<string, string> = {
+      PENDING: "Pendiente",
+      IN_PROGRESS: "En progreso",
+    };
+
+    return statusMap[status] || status || "-";
+  }
+
   truncateDescription(desc?: string): string {
     if (!desc) return "";
     return desc.length > 80 ? desc.substring(0, 80) + "..." : desc;
   }
 
   getReportTitle(report: RecentReportItem): string {
-    return (this.isCleaningOperations ? "Orden " : "Reporte ") + report.reportCode;
+    return this.isCleaningOperations
+      ? "Orden: " + (report.orderCode || report.reportCode)
+      : "Reporte " + report.reportCode;
   }
 
   private formatLocation(location: LocationResponse | string | null): string {

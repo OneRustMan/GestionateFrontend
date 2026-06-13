@@ -32,7 +32,11 @@
           <ng-container *ngFor="let report of recentReports; let last = last">
             <div class="report-item">
               <h3>{{ getReportTitle(report) }}</h3>
-              <p class="report-desc">{{ truncateDescription(report.description) }}</p>
+              <p *ngIf="isCleaningOperations" class="report-loc"><strong>Reporte:</strong> {{ report.reportCode }}</p>
+              <p *ngIf="isCleaningOperations" class="report-loc"><strong>Descripción:</strong> {{ truncateDescription(report.description) }}</p>
+              <p *ngIf="!isCleaningOperations" class="report-desc">{{ truncateDescription(report.description) }}</p>
+              <p *ngIf="isCleaningOperations" class="report-loc"><strong>Prioridad:</strong> {{ report.priorityLabel }}</p>
+              <p *ngIf="isCleaningOperations" class="report-loc"><strong>Estado:</strong> {{ report.statusLabel }}</p>
               <p class="report-loc"><strong>{{ itemLocationLabel }}:</strong> {{ report.location }}</p>
             </div>
             <hr *ngIf="!last" class="divider">

@@ -3,7 +3,7 @@
   <h1 *ngIf="currentUserRole === 'ciudadano'">Mis reportes</h1>
   <h1 *ngIf="currentView === 'recepcionista-recibidos'">Reportes recibidos</h1>
   <h1 *ngIf="currentView === 'recepcionista-derivados'">Reportes derivados</h1>
-  <h1 *ngIf="currentUserRole === 'operativo'">Órdenes asignadas</h1>
+  <h1 *ngIf="currentView === 'operativo-asignadas'">Órdenes asignadas</h1>
   <h1 *ngIf="currentView === 'operativo-completadas'">Órdenes completadas</h1>
 
   <div class="search-bar-container">
@@ -77,6 +77,22 @@
             Baja
           </label>
       </div>
+
+      <div class="filter-group" *ngIf="currentView === 'operativo-asignadas'">
+        <h3>Filtrar por estado de orden</h3>
+          <label class="radio-label">
+            <input type="radio" name="workOrderStatus" [checked]="selectedWorkOrderStatusFilter === ''" (change)="changeWorkOrderStatusFilter('')">
+            Todos
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="workOrderStatus" [checked]="selectedWorkOrderStatusFilter === 'PENDING'" (change)="changeWorkOrderStatusFilter('PENDING')">
+            Pendientes
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="workOrderStatus" [checked]="selectedWorkOrderStatusFilter === 'IN_PROGRESS'" (change)="changeWorkOrderStatusFilter('IN_PROGRESS')">
+            En progreso
+          </label>
+      </div>
     </aside>
 
     <section class="reports-list">
@@ -92,7 +108,11 @@
         {{ deriveSuccess }}
       </div>
 
-      <div *ngIf="!isLoading && !errorMessage && !deriveSuccess && filteredReportsList.length === 0" class="no-results-message">
+      <div *ngIf="!isLoading && completeSuccess" class="derive-success-message">
+        {{ completeSuccess }}
+      </div>
+
+      <div *ngIf="!isLoading && !errorMessage && !deriveSuccess && !completeSuccess && filteredReportsList.length === 0" class="no-results-message">
         {{ getEmptyStateMessage() }}
       </div>
 
@@ -428,6 +448,25 @@
 
               <button type="button" class="derive-button" *ngIf="canShowTakeSection" [disabled]="takeLoading" (click)="takeSelectedWorkOrder()">
                 {{ takeLoading ? "Tomando orden..." : "Tomar orden" }}
+              </button>
+            </div>
+
+            <div class="detail-section derive-section" *ngIf="canShowCompleteSection || completeError">
+              <p class="section-title derive-title">Marcar orden como completada</p>
+              <label class="section-title" for="completionObservation">Observación</label>
+              <textarea
+                id="completionObservation"
+                class="completion-textarea"
+                [value]="completionObservation"
+                maxlength="500"
+                placeholder="Describe brevemente cómo fue atendida la incidencia"
+                [disabled]="completeLoading"
+                (input)="onCompletionObservationChange($event)"></textarea>
+
+              <div *ngIf="completeError" class="derive-error-message">{{ completeError }}</div>
+
+              <button type="button" class="derive-button" *ngIf="canShowCompleteSection" [disabled]="completeLoading" (click)="completeSelectedWorkOrder()">
+                {{ completeLoading ? "Completando..." : "Marcar como completada" }}
               </button>
             </div>
           </ng-container>

@@ -70,3 +70,15 @@ export interface TakeWorkOrderResponse {
 export interface CompleteWorkOrderRequest {
   observation: string;
 }
+
+export interface CompleteWorkOrderResponse {
+  workOrderId: number;
+  orderCode: string;
+  reportId: number;
+  reportCode: string;
+  cleaningStaffId: number;
+  workOrderStatus: WorkOrderStatus;
+  reportStatus: ReportStatus;
+  observation: string;
+  completedAt: string;
+}

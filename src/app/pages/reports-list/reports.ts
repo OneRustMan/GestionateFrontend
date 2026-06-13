@@ -10,7 +10,7 @@ import { IncidentTypeService } from "../../services/incident-type.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
 import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReceptionReportDetailResponse, ReceptionReportInboxResponse, ReportResponse, ReportSummary } from "../../models/report.models";
-import { WorkOrderDetailResponse, WorkOrderPriority, WorkOrderResponse } from "../../models/work-order.models";
+import { WorkOrderDetailResponse, WorkOrderPriority, WorkOrderResponse, WorkOrderStatus } from "../../models/work-order.models";
 
 interface ViewItem {
   numericId: number;
@@ -25,6 +25,7 @@ interface ViewItem {
   priority?: WorkOrderPriority;
   priorityLabel?: string;
   reportCode?: string;
+  workOrderStatus?: WorkOrderStatus;
 }
 
 @Component({
@@ -61,6 +62,7 @@ export class ReportsComponent implements OnInit {
   selectedIncidentTypeId: number | null = null;
   incidentTypes: IncidentTypeResponse[] = [];
   selectedPriorityFilter = "all";
+  selectedWorkOrderStatusFilter: WorkOrderStatus | "" = "";
   selectedPriority: WorkOrderPriority | "" = "";
   deriveLoading = false;
   deriveError = "";
@@ -68,10 +70,18 @@ export class ReportsComponent implements OnInit {
   takeLoading = false;
   takeError = "";
   takeSuccess = "";
+  completionObservation = "";
+  completeLoading = false;
+  completeError = "";
+  completeSuccess = "";
   searchTerm = "";
 
   get filteredReportsList(): ViewItem[] {
     let list = [...this.reportsList];
+
+    if (this.currentView === "operativo-asignadas" && this.selectedWorkOrderStatusFilter) {
+      list = list.filter(item => item.workOrderStatus === this.selectedWorkOrderStatusFilter);
+    }
 
     // 1. Búsqueda por texto
     if (this.searchTerm.trim() !== "") {
@@ -159,6 +169,7 @@ export class ReportsComponent implements OnInit {
         this.clearReportDetail();
         this.clearDeriveState();
         this.clearTakeState();
+        this.clearCompleteState();
       }
     }
   }
@@ -180,6 +191,13 @@ export class ReportsComponent implements OnInit {
       return;
     }
 
+    this.cdr.detectChanges();
+  }
+
+  changeWorkOrderStatusFilter(status: WorkOrderStatus | ""): void {
+    this.selectedWorkOrderStatusFilter = status;
+    this.currentPage = 1;
+    this.verifySelectedReport();
     this.cdr.detectChanges();
   }
 
@@ -205,6 +223,7 @@ export class ReportsComponent implements OnInit {
       this.clearReportDetail();
       this.clearDeriveState();
       this.clearTakeState();
+      this.clearCompleteState();
       this.loadItems();
       return;
     }
@@ -223,6 +242,7 @@ export class ReportsComponent implements OnInit {
       this.clearReportDetail();
       this.clearDeriveState();
       this.clearTakeState();
+      this.clearCompleteState();
       this.cdr.detectChanges();
       return;
     }
@@ -258,6 +278,7 @@ export class ReportsComponent implements OnInit {
     this.clearReportDetail();
     this.clearDeriveState();
     this.clearTakeState();
+    this.clearCompleteState();
     this.showCoordinarForm = false;
     this.showDenegarForm = false;
 
@@ -292,6 +313,7 @@ export class ReportsComponent implements OnInit {
     this.clearReportDetail();
     this.clearDeriveState();
     this.clearTakeState();
+    this.clearCompleteState();
 
     if (this.currentView === "ciudadano-mis-reportes") {
       this.loadCitizenReportDetail(report);
@@ -566,6 +588,88 @@ export class ReportsComponent implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  get canShowCompleteSection(): boolean {
+    return this.currentView === "operativo-asignadas"
+      && this.selectedWorkOrderDetail?.workOrderStatus === "IN_PROGRESS";
+  }
+
+  onCompletionObservationChange(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    this.completionObservation = textarea.value;
+    this.completeError = "";
+  }
+
+  completeSelectedWorkOrder(): void {
+    this.completeError = "";
+    this.completeSuccess = "";
+
+    const detail = this.selectedWorkOrderDetail;
+    if (!detail || detail.workOrderStatus !== "IN_PROGRESS") {
+      return;
+    }
+
+    const observation = this.completionObservation.trim();
+    if (!observation) {
+      this.completeError = "Ingresa una observación para completar la orden.";
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (observation.length > 500) {
+      this.completeError = "La observación no puede superar los 500 caracteres.";
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const cleaningStaffId = this.authService.getProfileId();
+    const workOrderId = detail.workOrderId;
+
+    if (this.authService.getRole() !== "CLEANING_OPERATIONS" || !cleaningStaffId || !workOrderId) {
+      void this.router.navigate(["/home"]);
+      return;
+    }
+
+    this.completeLoading = true;
+
+    this.workOrderService.completeWorkOrder(cleaningStaffId, workOrderId, { observation }).pipe(
+      finalize(() => {
+        this.completeLoading = false;
+        this.cdr.detectChanges();
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.completeSuccess = "Orden completada correctamente";
+        this.selectedReport = null;
+        this.clearReportDetail();
+        this.clearTakeState();
+        this.clearCompleteState(false);
+        this.loadItems();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.completeError = this.getCompleteWorkOrderErrorMessage(error);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private getCompleteWorkOrderErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 400) {
+      return "Ingresa una observación para completar la orden.";
+    }
+
+    if (error.status === 404) {
+      return "La orden ya no está disponible.";
+    }
+
+    if (error.status === 401 || error.status === 403) {
+      this.authService.clearSession();
+      void this.router.navigate(["/login"]);
+    }
+
+    return "No se pudo completar la orden. Inténtalo nuevamente.";
   }
 
   private getTakeWorkOrderErrorMessage(error: HttpErrorResponse): string {
@@ -886,6 +990,15 @@ export class ReportsComponent implements OnInit {
     this.takeSuccess = "";
   }
 
+  private clearCompleteState(clearSuccess = true): void {
+    this.completionObservation = "";
+    this.completeLoading = false;
+    this.completeError = "";
+    if (clearSuccess) {
+      this.completeSuccess = "";
+    }
+  }
+
   clearReportDetail(): void {
     this.selectedReportDetail = null;
     this.selectedReceptionReportDetail = null;
@@ -918,6 +1031,7 @@ export class ReportsComponent implements OnInit {
       priority: order.priority,
       priorityLabel: this.getPriorityLabel(order.priority),
       reportCode: order.reportCode || "#" + order.reportId,
+      workOrderStatus: order.workOrderStatus,
     };
   }
 
@@ -995,6 +1109,10 @@ export class ReportsComponent implements OnInit {
       return this.selectedPriorityFilter === "all"
         ? "No hay órdenes asignadas por ahora"
         : "No hay órdenes asignadas para esta prioridad";
+    }
+
+    if (this.currentView === "operativo-asignadas" && this.selectedWorkOrderStatusFilter && !this.searchTerm.trim()) {
+      return "No hay órdenes asignadas con este estado";
     }
 
     if (this.isWorkOrderListView()) {
