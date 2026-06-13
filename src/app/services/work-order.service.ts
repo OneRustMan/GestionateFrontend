@@ -6,7 +6,7 @@ import {
   CompleteWorkOrderRequest,
   WorkOrderDetail,
   WorkOrderPriority,
-  WorkOrderSummary,
+  WorkOrderResponse,
 } from '../models/work-order.models';
 
 @Injectable({ providedIn: 'root' })
@@ -15,12 +15,24 @@ export class WorkOrderService {
 
   constructor(private readonly http: HttpClient) {}
 
-  getAvailable(cleaningStaffId: number, priority?: WorkOrderPriority): Observable<WorkOrderSummary[]> {
-    let params = new HttpParams().set('cleaningStaffId', cleaningStaffId);
+  getAvailableWorkOrders(cleaningStaffId: number, priority?: WorkOrderPriority): Observable<WorkOrderResponse[]> {
+    let params = new HttpParams().set("cleaningStaffId", cleaningStaffId);
     if (priority) {
-      params = params.set('priority', priority);
+      params = params.set("priority", priority);
     }
-    return this.http.get<WorkOrderSummary[]>(`${this.apiUrl}/work-orders/available`, { params });
+    return this.http.get<WorkOrderResponse[]>(`${this.apiUrl}/work-orders/available`, { params });
+  }
+
+  getAvailable(cleaningStaffId: number, priority?: WorkOrderPriority): Observable<WorkOrderResponse[]> {
+    return this.getAvailableWorkOrders(cleaningStaffId, priority);
+  }
+
+  getCompletedWorkOrders(cleaningStaffId: number, priority?: WorkOrderPriority): Observable<WorkOrderResponse[]> {
+    let params = new HttpParams().set("cleaningStaffId", cleaningStaffId);
+    if (priority) {
+      params = params.set("priority", priority);
+    }
+    return this.http.get<WorkOrderResponse[]>(`${this.apiUrl}/work-orders/completed`, { params });
   }
 
   getDetail(workOrderId: number, cleaningStaffId: number): Observable<WorkOrderDetail> {

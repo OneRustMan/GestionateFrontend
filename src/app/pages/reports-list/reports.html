@@ -3,12 +3,12 @@
   <h1 *ngIf="currentUserRole === 'ciudadano'">Mis reportes</h1>
   <h1 *ngIf="currentView === 'recepcionista-recibidos'">Reportes recibidos</h1>
   <h1 *ngIf="currentView === 'recepcionista-derivados'">Reportes derivados</h1>
-  <h1 *ngIf="currentView === 'operativo-asignadas'">Órdenes asignadas</h1>
+  <h1 *ngIf="currentUserRole === 'operativo'">Órdenes asignadas</h1>
   <h1 *ngIf="currentView === 'operativo-completadas'">Órdenes completadas</h1>
 
   <div class="search-bar-container">
     <span class="search-icon">🔍</span>
-    <input type="text" placeholder="Buscar reporte" class="search-input" (input)="onSearch($event)">
+    <input type="text" [placeholder]="currentUserRole === 'operativo' ? 'Buscar orden' : 'Buscar reporte'" class="search-input" (input)="onSearch($event)">
   </div>
 
   <div class="layout-grid">
@@ -81,7 +81,7 @@
 
     <section class="reports-list">
       <div *ngIf="isLoading" class="no-results-message">
-        Cargando reportes...
+        {{ currentUserRole === 'operativo' ? 'Cargando órdenes...' : 'Cargando reportes...' }}
       </div>
 
       <div *ngIf="!isLoading && errorMessage" class="no-results-message">
@@ -103,14 +103,16 @@
              style="cursor: pointer;">
           <h2>{{ reporte.id }}</h2>
           <p *ngIf="currentUserRole === 'recepcionista'">Ciudadano: {{ reporte.citizenFullName }}</p>
+          <p *ngIf="currentUserRole === 'operativo'">Reporte: {{ reporte.reportCode }}</p>
+          <p *ngIf="currentUserRole === 'operativo'">Prioridad: {{ reporte.priorityLabel }}</p>
           <p>Tipo: {{ reporte.tipo }}</p>
           <p>Lugar: {{ reporte.lugar }}</p>
           <p>Descripción: {{ reporte.description }}</p>
           <p>Fecha: {{ reporte.fecha }}</p>
 
           <div class="badge"
-               [style.background-color]="(reporte.estado === 'Recibido' || reporte.estado === 'Pendiente de Recepción') ? '#E0E0E0' : (reporte.estado === 'Derivado' || reporte.estado === 'En Proceso' ? '#F2C94C' : '#27AE60')"
-               [style.color]="(reporte.estado === 'Recibido' || reporte.estado === 'Pendiente de Recepción') ? '#333' : ((reporte.estado === 'Completado' || reporte.estado === 'Orden completada') ? '#FFF' : '#000')">
+               [style.background-color]="(reporte.estado === 'Recibido' || reporte.estado === 'Pendiente de Recepción' || reporte.estado === 'Pendiente') ? '#E0E0E0' : (reporte.estado === 'Derivado' || reporte.estado === 'En Proceso' || reporte.estado === 'En progreso' ? '#F2C94C' : '#27AE60')"
+               [style.color]="(reporte.estado === 'Recibido' || reporte.estado === 'Pendiente de Recepción' || reporte.estado === 'Pendiente') ? '#333' : ((reporte.estado === 'Completado' || reporte.estado === 'Orden completada' || reporte.estado === 'Completada') ? '#FFF' : '#000')">
             {{ reporte.estado }}
           </div>
           <div class="active-indicator" *ngIf="selectedReport === reporte">→</div>

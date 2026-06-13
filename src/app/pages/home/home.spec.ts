@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { ReportService } from '../../services/report.service';
+import { ReceptionService } from '../../services/reception.service';
 import { provideRouter } from '@angular/router';
 import { describe, it, expect, beforeEach } from 'vitest';
 
@@ -12,13 +13,20 @@ describe('HomeComponent', () => {
   let fixture: ComponentFixture<HomeComponent>;
   let mockAuthService: any;
   let mockReportService: any;
+  let mockReceptionService: any;
 
   beforeEach(async () => {
     mockAuthService = {
-      getCitizenId: () => 1
+      getRole: () => "CITIZEN",
+      getProfileId: () => 1,
+      getCitizenId: () => 1,
+      getCleaningStaffId: () => null
     };
     mockReportService = {
       getCitizenHistory: () => of([])
+    };
+    mockReceptionService = {
+      getInboxReports: () => of([])
     };
 
     await TestBed.configureTestingModule({
@@ -36,6 +44,10 @@ describe('HomeComponent', () => {
         {
           provide: ReportService,
           useValue: mockReportService
+        },
+        {
+          provide: ReceptionService,
+          useValue: mockReceptionService
         }
       ]
     })

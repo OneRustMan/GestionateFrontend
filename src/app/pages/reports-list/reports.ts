@@ -10,7 +10,7 @@ import { IncidentTypeService } from "../../services/incident-type.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
 import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReceptionReportDetailResponse, ReceptionReportInboxResponse, ReportResponse, ReportSummary } from "../../models/report.models";
-import { WorkOrderPriority, WorkOrderSummary } from "../../models/work-order.models";
+import { WorkOrderPriority, WorkOrderResponse } from "../../models/work-order.models";
 
 interface ViewItem {
   numericId: number;
@@ -22,7 +22,9 @@ interface ViewItem {
   description: string;
   citizenFullName?: string;
   createdAt?: string;
-  priority?: string;
+  priority?: WorkOrderPriority;
+  priorityLabel?: string;
+  reportCode?: string;
 }
 
 @Component({
@@ -72,11 +74,13 @@ export class ReportsComponent implements OnInit {
       const term = this.searchTerm.toLowerCase().trim();
       list = list.filter(item =>
         item.id.toLowerCase().includes(term) ||
+        (item.reportCode || "").toLowerCase().includes(term) ||
         (item.citizenFullName || "").toLowerCase().includes(term) ||
         item.tipo.toLowerCase().includes(term) ||
         item.lugar.toLowerCase().includes(term) ||
         item.description.toLowerCase().includes(term) ||
-        item.estado.toLowerCase().includes(term)
+        item.estado.toLowerCase().includes(term) ||
+        (item.priorityLabel || "").toLowerCase().includes(term)
       );
     }
 
@@ -97,12 +101,10 @@ export class ReportsComponent implements OnInit {
     }
 
     // 3. Filtrar por prioridad
-    if (this.currentUserRole === "operativo" && this.selectedPriorityFilter !== "all") {
+    if (this.currentUserRole === "operativo" && !this.isWorkOrderListView() && this.selectedPriorityFilter !== "all") {
       list = list.filter(item => {
         const itemPriority = item.priority || "";
-        const targetPriority = this.selectedPriorityFilter === "Alta" ? "HIGH" :
-                               this.selectedPriorityFilter === "Media" ? "MEDIUM" :
-                               this.selectedPriorityFilter === "Baja" ? "LOW" : "";
+        const targetPriority = this.getSelectedPriorityParam() || "";
         return itemPriority.toUpperCase() === targetPriority;
       });
     }
@@ -185,10 +187,20 @@ export class ReportsComponent implements OnInit {
     this.loadItems();
   }
 
+  isWorkOrderListView(): boolean {
+    return this.currentView === "operativo-asignadas" || this.currentView === "operativo-completadas";
+  }
+
   changePriority(priority: string) {
     this.selectedPriorityFilter = priority;
     this.currentPage = 1;
     this.verifySelectedReport();
+
+    if (this.isWorkOrderListView()) {
+      this.loadItems();
+      return;
+    }
+
     this.cdr.detectChanges();
   }
 
@@ -530,6 +542,36 @@ export class ReportsComponent implements OnInit {
       return;
     }
 
+    if (this.currentView === "operativo-asignadas") {
+      const cleaningStaffId = this.authService.getProfileId();
+      if (this.authService.getRole() !== "CLEANING_OPERATIONS" || !cleaningStaffId) {
+        this.failLoad("Acceso denegado.");
+        void this.router.navigate(["/home"]);
+        return;
+      }
+
+      this.workOrderService.getAvailableWorkOrders(cleaningStaffId, this.getSelectedPriorityParam()).subscribe({
+        next: (orders) => this.finishLoad(orders.map((order) => this.mapWorkOrder(order))),
+        error: (error: HttpErrorResponse) => this.handleWorkOrdersError(error),
+      });
+      return;
+    }
+
+    if (this.currentView === "operativo-completadas") {
+      const cleaningStaffId = this.authService.getProfileId();
+      if (this.authService.getRole() !== "CLEANING_OPERATIONS" || !cleaningStaffId) {
+        this.failLoad("Acceso denegado.");
+        void this.router.navigate(["/home"]);
+        return;
+      }
+
+      this.workOrderService.getCompletedWorkOrders(cleaningStaffId, this.getSelectedPriorityParam()).subscribe({
+        next: (orders) => this.finishLoad(orders.map((order) => this.mapWorkOrder(order))),
+        error: (error: HttpErrorResponse) => this.handleWorkOrdersError(error),
+      });
+      return;
+    }
+
     const cleaningStaffId = this.authService.getCleaningStaffId();
     if (!cleaningStaffId) {
       this.finishLoad([]);
@@ -584,6 +626,37 @@ export class ReportsComponent implements OnInit {
     };
   }
 
+  private getSelectedPriorityParam(): WorkOrderPriority | undefined {
+    const priorityMap: Record<string, WorkOrderPriority> = {
+      Alta: "HIGH",
+      Media: "MEDIUM",
+      Baja: "LOW",
+    };
+
+    return priorityMap[this.selectedPriorityFilter];
+  }
+
+  getPriorityLabel(priority: WorkOrderPriority | string): string {
+    const priorityMap: Record<string, string> = {
+      LOW: "Baja",
+      MEDIUM: "Media",
+      HIGH: "Alta",
+    };
+
+    return priorityMap[priority] || priority || "-";
+  }
+
+  getWorkOrderStatusLabel(status: string): string {
+    const statusMap: Record<string, string> = {
+      PENDING: "Pendiente",
+      IN_PROGRESS: "En progreso",
+      PARTIAL_ATTENTION: "Atención parcial",
+      COMPLETED: "Completada",
+    };
+
+    return statusMap[status] || status || "-";
+  }
+
   private getStatusFilterParam(): string | undefined {
     const statusMap: Record<string, string> = {
       Recibido: "RECEIVED",
@@ -594,7 +667,7 @@ export class ReportsComponent implements OnInit {
     return statusMap[this.selectedStatus];
   }
 
-  getIncidentTypesLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse): string {
+  getIncidentTypesLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse | WorkOrderResponse): string {
     const incidentTypes = report.incidentTypes || [];
     const labels = incidentTypes
       .map((type) => this.getIncidentTypeLabel(type))
@@ -618,7 +691,7 @@ export class ReportsComponent implements OnInit {
     return typeMap[name] || name || "";
   }
 
-  getLocationLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse): string {
+  getLocationLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse | WorkOrderResponse): string {
     return this.formatLocation(report.location);
   }
 
@@ -671,17 +744,19 @@ export class ReportsComponent implements OnInit {
     return address || area || "Ubicación no disponible";
   }
 
-  private mapWorkOrder(order: WorkOrderSummary): ViewItem {
+  private mapWorkOrder(order: WorkOrderResponse): ViewItem {
     return {
-      numericId: order.id,
-      id: "#" + order.id,
-      tipo: String(order.priority),
-      lugar: "Orden de trabajo",
+      numericId: order.workOrderId,
+      id: order.orderCode || "Orden #" + order.workOrderId,
+      tipo: this.getIncidentTypesLabel(order),
+      lugar: this.getLocationLabel(order),
       fecha: this.formatDate(order.createdAt),
-      estado: this.mapStatus(order.status),
-      description: "Orden asociada al reporte #" + order.reportId,
+      estado: this.getWorkOrderStatusLabel(order.workOrderStatus),
+      description: order.description || "-",
       createdAt: order.createdAt,
-      priority: String(order.priority),
+      priority: order.priority,
+      priorityLabel: this.getPriorityLabel(order.priority),
+      reportCode: order.reportCode || "#" + order.reportId,
     };
   }
 
@@ -712,6 +787,16 @@ export class ReportsComponent implements OnInit {
       : "No se pudieron cargar los reportes recibidos.");
   }
 
+  private handleWorkOrdersError(error: HttpErrorResponse): void {
+    if (error.status === 401 || error.status === 403) {
+      this.failLoad("Acceso denegado.");
+      void this.router.navigate(["/home"]);
+      return;
+    }
+
+    this.failLoad("No se pudieron cargar las órdenes asignadas.");
+  }
+
   private handleCitizenHistoryError(error: HttpErrorResponse): void {
     if (error.status === 401 || error.status === 403) {
       this.failLoad("Debes iniciar sesión para ver tu historial de reportes.");
@@ -737,6 +822,22 @@ export class ReportsComponent implements OnInit {
 
     if (this.currentUserRole === "ciudadano" && this.reportsList.length === 0 && this.selectedStatus === "all" && !this.searchTerm.trim()) {
       return "Aún no tienes reportes registrados";
+    }
+
+    if (this.isWorkOrderListView() && this.reportsList.length === 0 && !this.searchTerm.trim()) {
+      if (this.currentView === "operativo-completadas") {
+        return this.selectedPriorityFilter === "all"
+          ? "No hay órdenes completadas por ahora"
+          : "No hay órdenes completadas para esta prioridad";
+      }
+
+      return this.selectedPriorityFilter === "all"
+        ? "No hay órdenes asignadas por ahora"
+        : "No hay órdenes asignadas para esta prioridad";
+    }
+
+    if (this.isWorkOrderListView()) {
+      return "No se encontraron órdenes con los criterios seleccionados.";
     }
 
     return "No se encontraron reportes con los criterios seleccionados.";
