@@ -7,6 +7,7 @@
       <button class="btn-primary" [routerLink]="primaryActionLink">{{ primaryActionLabel }}</button>
       <a class="link-secondary" [routerLink]="finalLinkRoute">{{ finalLinkLabel }}</a>
       <a *ngIf="isReceptionist" class="link-secondary" routerLink="/reportes-derivados">Reportes derivados</a>
+      <a *ngIf="isCleaningOperations" class="link-secondary" routerLink="/ordenes-completadas">Órdenes completadas</a>
     </div>
   </section>
 
@@ -16,7 +17,7 @@
     <div class="reports-content">
       <div class="reports-card">
         <div *ngIf="isLoading" class="loading-state">
-          <p>Cargando reportes...</p>
+          <p>{{ loadingMessage }}</p>
         </div>
 
         <div *ngIf="errorMessage && !isLoading" class="error-state">
@@ -32,7 +33,7 @@
             <div class="report-item">
               <h3>{{ getReportTitle(report) }}</h3>
               <p class="report-desc">{{ truncateDescription(report.description) }}</p>
-              <p class="report-loc"><strong>Dirección:</strong> {{ report.location }}</p>
+              <p class="report-loc"><strong>{{ itemLocationLabel }}:</strong> {{ report.location }}</p>
             </div>
             <hr *ngIf="!last" class="divider">
           </ng-container>
@@ -45,7 +46,7 @@
       </div>
 
       <div class="illustration-container">
-        <img src="images/home-phone.svg" alt="Ilustración de reporte en móvil" />
+        <img src="images/home-phone.svg" [alt]="illustrationAlt" />
       </div>
     </div>
   </section>

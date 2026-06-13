@@ -40,28 +40,58 @@ export class HomeComponent implements OnInit {
     return this.authService.getRole() === "MUNICIPAL_RECEPTIONIST";
   }
 
+  get isCleaningOperations(): boolean {
+    return this.authService.getRole() === "CLEANING_OPERATIONS";
+  }
+
   get primaryActionLabel(): string {
-    return this.isReceptionist ? "Reportes recibidos" : "Crear Reporte";
+    if (this.isReceptionist) return "Reportes recibidos";
+    if (this.isCleaningOperations) return "Órdenes asignadas";
+    return "Crear Reporte";
   }
 
   get primaryActionLink(): string {
-    return this.isReceptionist ? "/reportes-recibidos" : "/crear-reporte";
+    if (this.isReceptionist) return "/reportes-recibidos";
+    if (this.isCleaningOperations) return "/ordenes-asignadas";
+    return "/crear-reporte";
   }
 
   get reportsTitle(): string {
-    return this.isReceptionist ? "Últimos reportes recibidos" : "Tus últimos reportes";
+    if (this.isReceptionist) return "Últimos reportes recibidos";
+    if (this.isCleaningOperations) return "Últimas órdenes asignadas";
+    return "Tus últimos reportes";
   }
 
   get emptyMessage(): string {
-    return this.isReceptionist ? "No hay reportes pendientes" : "No tienes reportes registrados actualmente.";
+    if (this.isReceptionist) return "No hay reportes pendientes";
+    if (this.isCleaningOperations) return "No hay órdenes asignadas por ahora";
+    return "No tienes reportes registrados actualmente.";
   }
 
   get finalLinkLabel(): string {
-    return this.isReceptionist ? "Ver mis reportes recibidos" : "Ver todos mis reportes";
+    if (this.isReceptionist) return "Ver mis reportes recibidos";
+    if (this.isCleaningOperations) return "Ver mis órdenes asignadas";
+    return "Ver todos mis reportes";
   }
 
   get finalLinkRoute(): string {
-    return this.isReceptionist ? "/reportes-recibidos" : "/mis-reportes";
+    if (this.isReceptionist) return "/reportes-recibidos";
+    if (this.isCleaningOperations) return "/ordenes-asignadas";
+    return "/mis-reportes";
+  }
+
+  get loadingMessage(): string {
+    return this.isCleaningOperations ? "Cargando órdenes..." : "Cargando reportes...";
+  }
+
+  get itemLocationLabel(): string {
+    return this.isCleaningOperations ? "Referencia" : "Dirección";
+  }
+
+  get illustrationAlt(): string {
+    return this.isCleaningOperations
+      ? "Ilustración de órdenes asignadas"
+      : "Ilustración de reporte en móvil";
   }
 
   ngOnInit(): void {
@@ -83,6 +113,11 @@ export class HomeComponent implements OnInit {
 
     if (this.isReceptionist) {
       this.loadReceptionRecentReports();
+      return;
+    }
+
+    if (this.isCleaningOperations) {
+      this.loadCleaningRecentOrders();
       return;
     }
 
@@ -143,6 +178,13 @@ export class HomeComponent implements OnInit {
     });
   }
 
+  private loadCleaningRecentOrders(): void {
+    this.recentReports = [];
+    this.isLoading = false;
+    this.errorMessage = "";
+    this.cdr.detectChanges();
+  }
+
   private startLoading(): void {
     this.isLoading = true;
     this.errorMessage = "";
@@ -176,7 +218,7 @@ export class HomeComponent implements OnInit {
   }
 
   getReportTitle(report: RecentReportItem): string {
-    return "Reporte " + report.reportCode;
+    return (this.isCleaningOperations ? "Orden " : "Reporte ") + report.reportCode;
   }
 
   private formatLocation(location: LocationResponse | string | null): string {

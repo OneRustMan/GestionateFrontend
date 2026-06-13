@@ -1,7 +1,12 @@
-import { ReportStatus } from './report.models';
+import { IncidentTypeResponse, LocationResponse, ReportStatus } from "./report.models";
 
-export type WorkOrderPriority = 'LOW' | 'MEDIUM' | 'HIGH';
-export type WorkOrderStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | string;
+export type WorkOrderPriority = "LOW" | "MEDIUM" | "HIGH";
+
+export type WorkOrderStatus =
+  | "PENDING"
+  | "IN_PROGRESS"
+  | "PARTIAL_ATTENTION"
+  | "COMPLETED";
 
 export interface DeriveReportRequest {
   priority: WorkOrderPriority;
@@ -9,9 +14,9 @@ export interface DeriveReportRequest {
 
 export interface DeriveReportResponse {
   workOrderId: number;
-  orderCode: string;
+  orderCode: string | null;
   reportId: number;
-  reportCode: string;
+  reportCode: string | null;
   receptionistId: number;
   priority: WorkOrderPriority;
   workOrderStatus: WorkOrderStatus;
@@ -19,21 +24,22 @@ export interface DeriveReportResponse {
   createdAt: string;
 }
 
-export interface WorkOrderSummary {
-  id: number;
+export interface WorkOrderResponse {
+  workOrderId: number;
+  orderCode: string | null;
   reportId: number;
+  reportCode: string | null;
+  description: string;
+  reportStatus: ReportStatus;
   priority: WorkOrderPriority;
-  status: WorkOrderStatus;
-  createdAt?: string;
-  completedAt?: string;
-  [key: string]: string | number | boolean | undefined;
+  workOrderStatus: WorkOrderStatus;
+  incidentTypes: IncidentTypeResponse[];
+  location: LocationResponse | null;
+  createdAt: string;
 }
 
-export interface WorkOrderDetail extends WorkOrderSummary {
-  description?: string;
-  location?: string;
-  reportCode?: string;
-}
+export type WorkOrderSummary = WorkOrderResponse;
+export type WorkOrderDetail = WorkOrderResponse;
 
 export interface CompleteWorkOrderRequest {
   observation: string;
