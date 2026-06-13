@@ -10,7 +10,7 @@ import { IncidentTypeService } from "../../services/incident-type.service";
 import { ReportService } from "../../services/report.service";
 import { WorkOrderService } from "../../services/work-order.service";
 import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReceptionReportDetailResponse, ReceptionReportInboxResponse, ReportResponse, ReportSummary } from "../../models/report.models";
-import { WorkOrderPriority, WorkOrderResponse } from "../../models/work-order.models";
+import { WorkOrderDetailResponse, WorkOrderPriority, WorkOrderResponse } from "../../models/work-order.models";
 
 interface ViewItem {
   numericId: number;
@@ -49,6 +49,7 @@ export class ReportsComponent implements OnInit {
   selectedReport: ViewItem | null = null;
   selectedReportDetail: ReportResponse | null = null;
   selectedReceptionReportDetail: ReceptionReportDetailResponse | null = null;
+  selectedWorkOrderDetail: WorkOrderDetailResponse | null = null;
   detailLoading = false;
   detailError = "";
 
@@ -194,13 +195,16 @@ export class ReportsComponent implements OnInit {
   changePriority(priority: string) {
     this.selectedPriorityFilter = priority;
     this.currentPage = 1;
-    this.verifySelectedReport();
 
     if (this.isWorkOrderListView()) {
+      this.selectedReport = null;
+      this.clearReportDetail();
+      this.clearDeriveState();
       this.loadItems();
       return;
     }
 
+    this.verifySelectedReport();
     this.cdr.detectChanges();
   }
 
@@ -208,6 +212,15 @@ export class ReportsComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     this.searchTerm = input.value;
     this.currentPage = 1;
+
+    if (this.isWorkOrderListView()) {
+      this.selectedReport = null;
+      this.clearReportDetail();
+      this.clearDeriveState();
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.verifySelectedReport();
     if (!this.selectedReport) {
       this.clearDeriveState();
@@ -279,6 +292,11 @@ export class ReportsComponent implements OnInit {
 
     if (this.currentView === "recepcionista-recibidos" || this.currentView === "recepcionista-derivados") {
       this.loadReceptionReportDetail(report);
+      return;
+    }
+
+    if (this.isWorkOrderListView()) {
+      this.loadWorkOrderDetail(report);
     }
   }
 
@@ -370,6 +388,60 @@ export class ReportsComponent implements OnInit {
     });
   }
 
+  private loadWorkOrderDetail(report: ViewItem): void {
+    const cleaningStaffId = this.authService.getProfileId();
+
+    if (this.authService.getRole() !== "CLEANING_OPERATIONS" || !cleaningStaffId) {
+      void this.router.navigate(["/home"]);
+      return;
+    }
+
+    if (!report.numericId) {
+      this.detailError = "La orden ya no está disponible";
+      return;
+    }
+
+    const selectedWorkOrderId = report.numericId;
+    this.detailLoading = true;
+    this.detailError = "";
+
+    this.workOrderService.getWorkOrderDetail(cleaningStaffId, selectedWorkOrderId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (detail) => {
+        if (this.selectedReport?.numericId !== selectedWorkOrderId) return;
+        this.selectedWorkOrderDetail = detail;
+        this.detailLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error: HttpErrorResponse) => {
+        if (this.selectedReport?.numericId !== selectedWorkOrderId) return;
+        this.detailLoading = false;
+
+        if (error.status === 401 || error.status === 403) {
+          this.authService.clearSession();
+          void this.router.navigate(["/login"]);
+        } else {
+          this.detailError = this.getWorkOrderDetailErrorMessage(error);
+        }
+
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private getWorkOrderDetailErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 404) {
+      return "La orden ya no está disponible";
+    }
+
+    if (error.status === 400) {
+      return this.getBackendErrorText(error) || "La orden requiere ubicación para ser atendida";
+    }
+
+    return "No se pudo cargar el detalle de la orden.";
+  }
+
   get canShowDeriveSection(): boolean {
     return this.currentView === "recepcionista-recibidos"
       && this.selectedReceptionReportDetail?.status === "RECEIVED";
@@ -439,14 +511,16 @@ export class ReportsComponent implements OnInit {
 
   private getBackendErrorText(error: HttpErrorResponse): string {
     if (typeof error.error === "string") {
-      return error.error;
+      return error.error.trim();
     }
 
-    try {
-      return JSON.stringify(error.error ?? "");
-    } catch {
-      return [error.error?.message, error.error?.error].filter(Boolean).join(" ");
-    }
+    const backendMessage = [
+      error.error?.message,
+      error.error?.error,
+      error.error?.detail,
+    ].filter(Boolean).join(" ").trim();
+
+    return backendMessage;
   }
 
   abrirFormularioDenegar() {
@@ -667,7 +741,7 @@ export class ReportsComponent implements OnInit {
     return statusMap[this.selectedStatus];
   }
 
-  getIncidentTypesLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse | WorkOrderResponse): string {
+  getIncidentTypesLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse | WorkOrderResponse | WorkOrderDetailResponse): string {
     const incidentTypes = report.incidentTypes || [];
     const labels = incidentTypes
       .map((type) => this.getIncidentTypeLabel(type))
@@ -691,12 +765,16 @@ export class ReportsComponent implements OnInit {
     return typeMap[name] || name || "";
   }
 
-  getLocationLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse | WorkOrderResponse): string {
+  getLocationLabel(report: ReportResponse | ReportSummary | ReceptionReportInboxResponse | ReceptionReportDetailResponse | WorkOrderResponse | WorkOrderDetailResponse): string {
     return this.formatLocation(report.location);
   }
 
   getLocationText(location: LocationResponse | null): string {
     return this.formatLocation(location);
+  }
+
+  getVisualEvidences(evidences: EvidenceResponse[] | null | undefined): EvidenceResponse[] {
+    return (evidences ?? []).filter((evidence) => Boolean(evidence.fileUrl));
   }
 
   getEvidenceUrl(evidence: EvidenceResponse): string | null {
@@ -729,6 +807,7 @@ export class ReportsComponent implements OnInit {
   clearReportDetail(): void {
     this.selectedReportDetail = null;
     this.selectedReceptionReportDetail = null;
+    this.selectedWorkOrderDetail = null;
     this.detailLoading = false;
     this.detailError = "";
   }
