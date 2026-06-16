@@ -1,5 +1,5 @@
 export const environment = {
-  production: true,
-  apiBaseUrl: 'https://gestionate-api.onrender.com/api',
+  production: false,
+  apiBaseUrl: 'http://localhost:8080/api',
   nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
 };
