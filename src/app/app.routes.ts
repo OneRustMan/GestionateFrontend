@@ -14,6 +14,9 @@ import { ForgotPassword } from './pages/forgot-password/forgot-password';
 import { UpdatePassword } from './pages/update-password/update-password';
 import { HomeComponent } from './pages/home/home';
 import { CreateReportComponent } from './pages/create-report/create-report';
+import { ReportsComponent } from './pages/reports-list/reports';
+import { authChildGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -22,9 +25,50 @@ export const routes: Routes = [
     children: [
       { path: '', component: Landing },
       { path: 'contacto', component: Contact },
-      { path: 'perfil', component: Profile },
-      { path: 'home', component: HomeComponent },
-      { path: 'crear-reporte', component: CreateReportComponent }
+      {
+        path: '',
+        canActivateChild: [authChildGuard],
+        children: [
+          { path: 'perfil', component: Profile },
+          { path: 'home', component: HomeComponent },
+          {
+            path: 'crear-reporte',
+            component: CreateReportComponent,
+            canActivate: [roleGuard],
+            data: { roles: ['CITIZEN'] },
+          },
+          {
+            path: 'mis-reportes',
+            component: ReportsComponent,
+            canActivate: [roleGuard],
+            data: { roles: ['CITIZEN'] },
+          },
+          {
+            path: 'reportes-recibidos',
+            component: ReportsComponent,
+            canActivate: [roleGuard],
+            data: { roles: ['MUNICIPAL_RECEPTIONIST'] },
+          },
+          {
+            path: 'reportes-derivados',
+            component: ReportsComponent,
+            canActivate: [roleGuard],
+            data: { roles: ['MUNICIPAL_RECEPTIONIST'] },
+          },
+          {
+            path: 'ordenes-asignadas',
+            component: ReportsComponent,
+            canActivate: [roleGuard],
+            data: { roles: ['CLEANING_OPERATIONS'] },
+          },
+          {
+            path: 'ordenes-completadas',
+            component: ReportsComponent,
+            canActivate: [roleGuard],
+            data: { roles: ['CLEANING_OPERATIONS'] },
+          }
+        ]
+      }
     ]
   },
   {

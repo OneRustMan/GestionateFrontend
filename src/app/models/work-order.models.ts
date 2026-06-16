@@ -1,0 +1,84 @@
+import { EvidenceResponse, IncidentTypeResponse, LocationResponse, ReportStatus } from "./report.models";
+
+export type WorkOrderPriority = "LOW" | "MEDIUM" | "HIGH";
+
+export type WorkOrderStatus =
+  | "PENDING"
+  | "IN_PROGRESS"
+  | "PARTIAL_ATTENTION"
+  | "COMPLETED";
+
+export interface DeriveReportRequest {
+  priority: WorkOrderPriority;
+}
+
+export interface DeriveReportResponse {
+  workOrderId: number;
+  orderCode: string | null;
+  reportId: number;
+  reportCode: string | null;
+  receptionistId: number;
+  priority: WorkOrderPriority;
+  workOrderStatus: WorkOrderStatus;
+  reportStatus: ReportStatus;
+  createdAt: string;
+}
+
+export interface WorkOrderResponse {
+  workOrderId: number;
+  orderCode: string | null;
+  reportId: number;
+  reportCode: string | null;
+  description: string;
+  reportStatus: ReportStatus;
+  priority: WorkOrderPriority;
+  workOrderStatus: WorkOrderStatus;
+  incidentTypes: IncidentTypeResponse[];
+  location: LocationResponse | null;
+  createdAt: string;
+}
+
+export type WorkOrderSummary = WorkOrderResponse;
+
+export interface WorkOrderDetailResponse {
+  workOrderId: number;
+  orderCode: string;
+  reportId: number;
+  reportCode: string;
+  description: string;
+  reportStatus: ReportStatus;
+  priority: WorkOrderPriority;
+  workOrderStatus: WorkOrderStatus;
+  incidentTypes: IncidentTypeResponse[];
+  location: LocationResponse | null;
+  evidences: EvidenceResponse[];
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export type WorkOrderDetail = WorkOrderDetailResponse;
+
+export interface TakeWorkOrderResponse {
+  workOrderId: number;
+  orderCode: string;
+  reportId: number;
+  reportCode: string;
+  cleaningStaffId: number;
+  workOrderStatus: WorkOrderStatus;
+}
+
+export interface CompleteWorkOrderRequest {
+  observation: string;
+}
+
+export interface CompleteWorkOrderResponse {
+  workOrderId: number;
+  orderCode: string;
+  reportId: number;
+  reportCode: string;
+  cleaningStaffId: number;
+  workOrderStatus: WorkOrderStatus;
+  reportStatus: ReportStatus;
+  observation: string;
+  completedAt: string;
+}

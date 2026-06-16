@@ -1,27 +1,32 @@
 <div class="flex flex-col w-full max-w-md mx-auto">
   <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center md:text-left">Iniciar Sesión</h2>
   
-  <form class="flex flex-col space-y-6 w-full">
+  <form #loginForm="ngForm" class="flex flex-col space-y-6 w-full" (ngSubmit)="onLogin(loginForm)" novalidate>
     <div class="flex flex-col">
       <label class="text-sm font-semibold text-gray-700 mb-2">Correo electrónico</label>
-      <input type="email" placeholder="@correo.com" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+      <input type="email" name="email" [(ngModel)]="email" #emailControl="ngModel" required email [disabled]="isLoading()" placeholder="@correo.com" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+      <p *ngIf="emailControl.touched && emailControl.errors?.['required']" class="text-xs text-red-600 mt-1">El correo es obligatorio.</p>
+      <p *ngIf="emailControl.touched && emailControl.errors?.['email']" class="text-xs text-red-600 mt-1">Ingresa un correo válido.</p>
     </div>
 
     <div class="flex flex-col">
       <label class="text-sm font-semibold text-gray-700 mb-2">Contraseña</label>
-      <input type="password" placeholder="Contraseña segura" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+      <input type="password" name="password" [(ngModel)]="password" #passwordControl="ngModel" required [disabled]="isLoading()" placeholder="Contraseña segura" class="px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow bg-gray-50 text-gray-800" />
+      <p *ngIf="passwordControl.touched && passwordControl.errors?.['required']" class="text-xs text-red-600 mt-1">La contraseña es obligatoria.</p>
       <div class="flex justify-end mt-2">
         <a routerLink="/recuperar-password" class="text-sm text-gray-600 hover:text-green-800 font-medium transition-colors">¿Olvidaste tu contraseña?</a>
       </div>
     </div>
 
-    <button type="button" (click)="onLogin()" class="w-full py-3 bg-green-900 text-white font-bold rounded-xl hover:bg-green-800 transition-colors shadow-md mt-2">
-      Inicia Sesión
+    <p *ngIf="errorMessage()" class="text-sm text-red-600 font-medium">{{ errorMessage() }}</p>
+
+    <button type="submit" [disabled]="isLoading()" class="w-full py-3 bg-green-900 text-white font-bold rounded-xl hover:bg-green-800 transition-colors shadow-md mt-2 disabled:opacity-60 disabled:cursor-not-allowed">
+      {{ isLoading() ? 'Ingresando...' : 'Iniciar sesión' }}
     </button>
 
     <div class="text-center pt-4">
       <span class="text-gray-600">¿No tienes cuenta?</span>
-      <a routerLink="/registro" class="font-bold text-gray-900 hover:text-green-800 ml-1 transition-colors">Registrate aquí</a>
+      <a routerLink="/registro" class="font-bold text-gray-900 hover:text-green-800 ml-1 transition-colors">Crear cuenta</a>
     </div>
   </form>
 </div>

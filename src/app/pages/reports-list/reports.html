@@ -1,0 +1,477 @@
+<div class="reports-container">
+
+  <h1 *ngIf="currentUserRole === 'ciudadano'">Mis reportes</h1>
+  <h1 *ngIf="currentView === 'recepcionista-recibidos'">Reportes recibidos</h1>
+  <h1 *ngIf="currentView === 'recepcionista-derivados'">Reportes derivados</h1>
+  <h1 *ngIf="currentView === 'operativo-asignadas'">Órdenes asignadas</h1>
+  <h1 *ngIf="currentView === 'operativo-completadas'">Órdenes completadas</h1>
+
+  <div class="search-bar-container">
+    <span class="search-icon">🔍</span>
+    <input type="text" [placeholder]="currentUserRole === 'operativo' ? 'Buscar orden' : 'Buscar reporte'" class="search-input" (input)="onSearch($event)">
+  </div>
+
+  <div class="layout-grid">
+
+    <aside class="sidebar-filters">
+      <div class="filter-group">
+        <h3>Ordenar por fecha</h3>
+        <label class="radio-label">
+          <input type="radio" name="order" [checked]="selectedOrder === 'recent'" (change)="changeOrder('recent')">
+          Más recientes
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="order" [checked]="selectedOrder === 'old'" (change)="changeOrder('old')">
+          Más antiguos
+        </label>
+      </div>
+
+      <div class="filter-group" *ngIf="currentUserRole === 'ciudadano'">
+        <h3>Filtrar por estado</h3>
+        <label class="radio-label">
+          <input type="radio" name="status" [checked]="selectedStatus === 'all'" (change)="changeStatus('all')">
+          Todos
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="status" [checked]="selectedStatus === 'Recibido'" (change)="changeStatus('Recibido')">
+          Recibidos
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="status" [checked]="selectedStatus === 'Derivado'" (change)="changeStatus('Derivado')">
+          Derivados
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="status" [checked]="selectedStatus === 'Completado'" (change)="changeStatus('Completado')">
+          Completados
+        </label>
+      </div>
+
+      <div class="filter-group" *ngIf="currentUserRole === 'recepcionista'">
+        <h3>Filtrar por tipo de incidencia</h3>
+        <label class="radio-label">
+          <input type="radio" name="incidentType" [checked]="selectedIncidentTypeId === null" (change)="onIncidentTypeFilterChange(null)">
+          Todos
+        </label>
+        <label class="radio-label" *ngFor="let type of incidentTypes">
+          <input type="radio" name="incidentType" [checked]="selectedIncidentTypeId === type.id" (change)="onIncidentTypeFilterChange(type.id)">
+          {{ getIncidentTypeLabel(type) }}
+        </label>
+      </div>
+
+      <div class="filter-group" *ngIf="currentUserRole === 'operativo'">
+        <h3>Filtrar por prioridad</h3>
+          <label class="radio-label">
+            <input type="radio" name="priority" [checked]="selectedPriorityFilter === 'all'" (change)="changePriority('all')">
+            Todos
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="priority" [checked]="selectedPriorityFilter === 'Alta'" (change)="changePriority('Alta')">
+            Alta
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="priority" [checked]="selectedPriorityFilter === 'Media'" (change)="changePriority('Media')">
+            Media
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="priority" [checked]="selectedPriorityFilter === 'Baja'" (change)="changePriority('Baja')">
+            Baja
+          </label>
+      </div>
+
+      <div class="filter-group" *ngIf="currentView === 'operativo-asignadas'">
+        <h3>Filtrar por estado de orden</h3>
+          <label class="radio-label">
+            <input type="radio" name="workOrderStatus" [checked]="selectedWorkOrderStatusFilter === ''" (change)="changeWorkOrderStatusFilter('')">
+            Todos
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="workOrderStatus" [checked]="selectedWorkOrderStatusFilter === 'PENDING'" (change)="changeWorkOrderStatusFilter('PENDING')">
+            Pendientes
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="workOrderStatus" [checked]="selectedWorkOrderStatusFilter === 'IN_PROGRESS'" (change)="changeWorkOrderStatusFilter('IN_PROGRESS')">
+            En progreso
+          </label>
+      </div>
+    </aside>
+
+    <section class="reports-list">
+      <div *ngIf="isLoading" class="no-results-message">
+        {{ currentUserRole === 'operativo' ? 'Cargando órdenes...' : 'Cargando reportes...' }}
+      </div>
+
+      <div *ngIf="!isLoading && errorMessage" class="no-results-message">
+        {{ errorMessage }}
+      </div>
+
+      <div *ngIf="!isLoading && deriveSuccess" class="derive-success-message">
+        {{ deriveSuccess }}
+      </div>
+
+      <div *ngIf="!isLoading && completeSuccess" class="derive-success-message">
+        {{ completeSuccess }}
+      </div>
+
+      <div *ngIf="!isLoading && !errorMessage && !deriveSuccess && !completeSuccess && filteredReportsList.length === 0" class="no-results-message">
+        {{ getEmptyStateMessage() }}
+      </div>
+
+      <ng-container *ngFor="let reporte of paginatedReportsList">
+        <div class="report-card"
+             (click)="selectReport(reporte)"
+             [class.active-card]="selectedReport === reporte"
+             style="cursor: pointer;">
+          <h2>{{ reporte.id }}</h2>
+          <p *ngIf="currentUserRole === 'recepcionista'">Ciudadano: {{ reporte.citizenFullName }}</p>
+          <p *ngIf="currentUserRole === 'operativo'">Reporte: {{ reporte.reportCode }}</p>
+          <p *ngIf="currentUserRole === 'operativo'">Prioridad: {{ reporte.priorityLabel }}</p>
+          <p>Tipo: {{ reporte.tipo }}</p>
+          <p>Lugar: {{ reporte.lugar }}</p>
+          <p>Descripción: {{ reporte.description }}</p>
+          <p>Fecha: {{ reporte.fecha }}</p>
+
+          <div class="badge"
+               [style.background-color]="(reporte.estado === 'Recibido' || reporte.estado === 'Pendiente de Recepción' || reporte.estado === 'Pendiente') ? '#E0E0E0' : (reporte.estado === 'Derivado' || reporte.estado === 'En Proceso' || reporte.estado === 'En progreso' ? '#F2C94C' : '#27AE60')"
+               [style.color]="(reporte.estado === 'Recibido' || reporte.estado === 'Pendiente de Recepción' || reporte.estado === 'Pendiente') ? '#333' : ((reporte.estado === 'Completado' || reporte.estado === 'Orden completada' || reporte.estado === 'Completada') ? '#FFF' : '#000')">
+            {{ reporte.estado }}
+          </div>
+          <div class="active-indicator" *ngIf="selectedReport === reporte">→</div>
+        </div>
+      </ng-container>
+
+      <!-- Paginación -->
+      <div class="pagination-container" *ngIf="totalPages > 1">
+        <button
+          class="pagination-arrow"
+          [disabled]="currentPage === 1"
+          (click)="setPage(currentPage - 1)">
+          ‹
+        </button>
+        <button
+          *ngFor="let page of pagesArray"
+          class="pagination-number"
+          [class.active-page]="currentPage === page"
+          (click)="setPage(page)">
+          {{ page }}
+        </button>
+        <button
+          class="pagination-arrow"
+          [disabled]="currentPage === totalPages"
+          (click)="setPage(currentPage + 1)">
+          ›
+        </button>
+      </div>
+    </section>
+
+    <section class="report-details" *ngIf="!selectedReport" style="display: flex; align-items: center; justify-content: center; text-align: center; border: 2px dashed #ccc;">
+      <h3 style="color: #666;">Selecciona un elemento de la lista para gestionarlo.</h3>
+    </section>
+
+    <section class="report-details" *ngIf="selectedReport">
+      <h3>{{ currentUserRole === 'operativo' ? 'Detalle de la orden' : 'Detalle del reporte' }}</h3>
+
+      <ng-container *ngIf="currentView === 'ciudadano-mis-reportes'; else operationalDetail">
+        <div *ngIf="detailLoading" class="detail-loading">Cargando detalle...</div>
+        <div *ngIf="!detailLoading && detailError" class="detail-error">{{ detailError }}</div>
+
+        <ng-container *ngIf="!detailLoading && !detailError && selectedReportDetail as detail">
+          <div class="detail-section">
+            <p class="section-title">Código de reporte</p>
+            <div class="description-box compact-detail">{{ detail.reportCode }}</div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Estado actual</p>
+            <div class="badge status-detail-badge">{{ getStatusLabel(detail.status) }}</div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Descripción del problema</p>
+            <div class="description-box">{{ detail.description }}</div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Tipo de incidente</p>
+            <div class="detail-chips" *ngIf="detail.incidentTypes.length > 0; else noIncidentTypes">
+              <span class="detail-chip" *ngFor="let type of detail.incidentTypes">
+                {{ getIncidentTypeLabel(type.name) }}
+              </span>
+            </div>
+            <ng-template #noIncidentTypes>
+              <div class="description-box compact-detail">Sin tipo de incidente registrado</div>
+            </ng-template>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Ubicación</p>
+            <div class="description-box location-detail">
+              <p>{{ getLocationText(detail.location) }}</p>
+              <ng-container *ngIf="detail.location">
+                <p *ngIf="detail.location.latitude !== undefined">Latitud: {{ detail.location.latitude }}</p>
+                <p *ngIf="detail.location.longitude !== undefined">Longitud: {{ detail.location.longitude }}</p>
+              </ng-container>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Fechas</p>
+            <div class="description-box compact-detail">
+              <p>Creado: {{ formatDate(detail.createdAt) }}</p>
+              <p *ngIf="detail.updatedAt">Actualizado: {{ formatDate(detail.updatedAt) }}</p>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <p class="section-title">Evidencias</p>
+            <div class="photos-grid evidence-grid" *ngIf="detail.evidences.length > 0; else noEvidences">
+              <ng-container *ngFor="let evidence of detail.evidences">
+                <a *ngIf="getEvidenceUrl(evidence); else evidencePlaceholder" [href]="getEvidenceUrl(evidence)" target="_blank" rel="noopener noreferrer" class="evidence-link">
+                  <img [src]="getEvidenceUrl(evidence)" [alt]="getEvidenceLabel(evidence)" class="evidence-image">
+                </a>
+                <ng-template #evidencePlaceholder>
+                  <div class="photo-placeholder">{{ getEvidenceLabel(evidence) }}</div>
+                </ng-template>
+              </ng-container>
+            </div>
+            <ng-template #noEvidences>
+              <div class="photo-placeholder evidence-empty">Sin evidencias registradas</div>
+            </ng-template>
+          </div>
+
+          <div class="detail-section" style="margin-top: 1.5rem;">
+            <p class="section-title">Estado del reporte</p>
+            <ul class="status-timeline">
+              <li [class.active]="isStatusStepActive(detail.status, 'RECEIVED')"><span class="circle"></span> 1. Recibido</li>
+              <li [class.active]="isStatusStepActive(detail.status, 'DERIVED')"><span class="circle"></span> 2. Derivado</li>
+              <li [class.active]="isStatusStepActive(detail.status, 'ORDER_COMPLETED')"><span class="circle"></span> 3. Tarea completada</li>
+            </ul>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <ng-template #operationalDetail>
+        <ng-container *ngIf="currentView === 'recepcionista-recibidos' || currentView === 'recepcionista-derivados'; else legacyOperationalDetail">
+          <div *ngIf="detailLoading" class="detail-loading">Cargando detalle...</div>
+          <div *ngIf="!detailLoading && detailError" class="detail-error">{{ detailError }}</div>
+
+          <ng-container *ngIf="!detailLoading && !detailError && selectedReceptionReportDetail as detail">
+            <div class="detail-section">
+              <p class="section-title">Código de reporte</p>
+              <div class="description-box compact-detail">{{ detail.reportCode }}</div>
+            </div>
+
+            <div class="detail-section">
+              <p class="section-title">Estado actual</p>
+              <div class="badge status-detail-badge">{{ getStatusLabel(detail.status) }}</div>
+            </div>
+
+            <div class="detail-section">
+              <p class="section-title">Descripción del problema</p>
+              <div class="description-box">{{ detail.description }}</div>
+            </div>
+
+            <div class="detail-section">
+              <p class="section-title">Datos del ciudadano</p>
+              <div class="description-box compact-detail">
+                <p>Nombre: {{ detail.citizenFullName || '-' }}</p>
+                <p>DNI: {{ detail.citizenDni || '-' }}</p>
+                <p>Teléfono: {{ detail.citizenPhone || '-' }}</p>
+                <p>Email: {{ detail.citizenEmail || '-' }}</p>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <p class="section-title">Tipos de incidencia</p>
+              <div class="detail-chips" *ngIf="detail.incidentTypes.length > 0; else noReceptionIncidentTypes">
+                <span class="detail-chip" *ngFor="let type of detail.incidentTypes">{{ getIncidentTypeLabel(type) }}</span>
+              </div>
+              <ng-template #noReceptionIncidentTypes>
+                <div class="description-box compact-detail">Sin tipo de incidente registrado</div>
+              </ng-template>
+            </div>
+
+            <div class="detail-section">
+              <p class="section-title">Ubicación</p>
+              <div class="description-box location-detail">
+                <p>{{ getLocationText(detail.location) }}</p>
+                <ng-container *ngIf="detail.location">
+                  <p *ngIf="detail.location.latitude !== undefined">Latitud: {{ detail.location.latitude }}</p>
+                  <p *ngIf="detail.location.longitude !== undefined">Longitud: {{ detail.location.longitude }}</p>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <p class="section-title">Fechas</p>
+              <div class="description-box compact-detail">
+                <p>Creado: {{ formatDate(detail.createdAt) }}</p>
+                <p>Actualizado: {{ formatDate(detail.updatedAt) }}</p>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <p class="section-title">Evidencias</p>
+              <div class="photos-grid evidence-grid" *ngIf="detail.evidences.length > 0; else noReceptionEvidences">
+                <ng-container *ngFor="let evidence of detail.evidences">
+                  <a *ngIf="getEvidenceUrl(evidence); else receptionEvidencePlaceholder" [href]="getEvidenceUrl(evidence)" target="_blank" rel="noopener noreferrer" class="evidence-link">
+                    <img [src]="getEvidenceUrl(evidence)" [alt]="getEvidenceLabel(evidence)" class="evidence-image">
+                  </a>
+                  <ng-template #receptionEvidencePlaceholder>
+                    <div class="photo-placeholder">{{ getEvidenceLabel(evidence) }}</div>
+                  </ng-template>
+                </ng-container>
+              </div>
+              <ng-template #noReceptionEvidences>
+                <div class="photo-placeholder evidence-empty">Sin evidencia visual</div>
+              </ng-template>
+            </div>
+
+            <div class="detail-section" style="margin-top: 1.5rem;">
+              <p class="section-title">Estado del reporte</p>
+              <ul class="status-timeline">
+                <li [class.active]="isStatusStepActive(detail.status, 'RECEIVED')"><span class="circle"></span> 1. Recibido</li>
+                <li [class.active]="isStatusStepActive(detail.status, 'DERIVED')"><span class="circle"></span> 2. Derivado</li>
+                <li [class.active]="isStatusStepActive(detail.status, 'ORDER_COMPLETED')"><span class="circle"></span> 3. Orden completada</li>
+              </ul>
+            </div>
+
+            <div class="detail-section derive-section" *ngIf="canShowDeriveSection">
+              <p class="section-title derive-title">Derivar a limpieza pública</p>
+              <p class="section-title">Prioridad</p>
+
+              <div class="derive-options" role="radiogroup" aria-label="Prioridad">
+                <label class="radio-label derive-option">
+                  <input type="radio" name="derivePriority" [checked]="selectedPriority === 'LOW'" (change)="onDerivePriorityChange('LOW')">
+                  Baja
+                </label>
+                <label class="radio-label derive-option">
+                  <input type="radio" name="derivePriority" [checked]="selectedPriority === 'MEDIUM'" (change)="onDerivePriorityChange('MEDIUM')">
+                  Media
+                </label>
+                <label class="radio-label derive-option">
+                  <input type="radio" name="derivePriority" [checked]="selectedPriority === 'HIGH'" (change)="onDerivePriorityChange('HIGH')">
+                  Alta
+                </label>
+              </div>
+
+              <div *ngIf="deriveError" class="derive-error-message">{{ deriveError }}</div>
+              <div *ngIf="deriveSuccess" class="derive-success-message compact-message">{{ deriveSuccess }}</div>
+
+              <button type="button" class="derive-button" [disabled]="deriveLoading" (click)="derivar()">
+                {{ deriveLoading ? 'Derivando...' : 'Derivar' }}
+              </button>
+            </div>
+          </ng-container>
+        </ng-container>
+
+        <ng-template #legacyOperationalDetail>
+          <div *ngIf='detailLoading' class='detail-loading'>Cargando detalle...</div>
+          <div *ngIf='!detailLoading && detailError' class='detail-error'>{{ detailError }}</div>
+
+          <ng-container *ngIf='!detailLoading && !detailError && selectedWorkOrderDetail as detail'>
+            <div class='detail-section'>
+              <p class='section-title'>Código de orden</p>
+              <div class='description-box compact-detail'>{{ detail.orderCode }}</div>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Datos de la orden</p>
+              <div class='description-box compact-detail'>
+                <p>Estado: {{ getWorkOrderStatusLabel(detail.workOrderStatus) }}</p>
+                <p>Prioridad: {{ getPriorityLabel(detail.priority) }}</p>
+                <p>Creada: {{ formatDate(detail.createdAt) }}</p>
+                <p *ngIf='detail.completedAt'>Completada: {{ formatDate(detail.completedAt) }}</p>
+              </div>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Código de reporte</p>
+              <div class='description-box compact-detail'>{{ detail.reportCode }}</div>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Estado del reporte</p>
+              <div class='badge status-detail-badge'>{{ getStatusLabel(detail.reportStatus) }}</div>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Descripción del reporte</p>
+              <div class='description-box'>{{ detail.description }}</div>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Tipos de incidencia</p>
+              <div class='detail-chips' *ngIf='detail.incidentTypes.length > 0; else noWorkOrderIncidentTypes'>
+                <span class='detail-chip' *ngFor='let type of detail.incidentTypes'>{{ getIncidentTypeLabel(type) }}</span>
+              </div>
+              <ng-template #noWorkOrderIncidentTypes>
+                <div class='description-box compact-detail'>Sin tipo de incidencia</div>
+              </ng-template>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Ubicación</p>
+              <div class='description-box location-detail'>
+                <p>{{ getLocationText(detail.location) }}</p>
+                <ng-container *ngIf='detail.location'>
+                  <p>Latitud: {{ detail.location.latitude }}</p>
+                  <p>Longitud: {{ detail.location.longitude }}</p>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class='detail-section'>
+              <p class='section-title'>Evidencias</p>
+              <div class='photos-grid evidence-grid' *ngIf='getVisualEvidences(detail.evidences).length > 0; else noWorkOrderEvidences'>
+                <ng-container *ngFor='let evidence of getVisualEvidences(detail.evidences)'>
+                  <a *ngIf='getEvidenceUrl(evidence); else workOrderEvidencePlaceholder' [href]='getEvidenceUrl(evidence)' target='_blank' rel='noopener noreferrer' class='evidence-link'>
+                    <img [src]='getEvidenceUrl(evidence)' [alt]='getEvidenceLabel(evidence)' class='evidence-image'>
+                  </a>
+                  <ng-template #workOrderEvidencePlaceholder>
+                    <div class='photo-placeholder'>{{ getEvidenceLabel(evidence) }}</div>
+                  </ng-template>
+                </ng-container>
+              </div>
+              <ng-template #noWorkOrderEvidences>
+                <div class='photo-placeholder evidence-empty'>Sin evidencia visual</div>
+              </ng-template>
+            </div>
+
+            <div class="detail-section derive-section" *ngIf="canShowTakeSection || takeError || takeSuccess">
+              <p class="section-title derive-title">Tomar orden operativa</p>
+              <div class="description-box compact-detail" *ngIf="canShowTakeSection">
+                Al tomar esta orden, quedará asignada a tu usuario operativo y pasará a estado En progreso.
+              </div>
+
+              <div *ngIf="takeError" class="derive-error-message">{{ takeError }}</div>
+              <div *ngIf="takeSuccess" class="derive-success-message compact-message">{{ takeSuccess }}</div>
+
+              <button type="button" class="derive-button" *ngIf="canShowTakeSection" [disabled]="takeLoading" (click)="takeSelectedWorkOrder()">
+                {{ takeLoading ? "Tomando orden..." : "Tomar orden" }}
+              </button>
+            </div>
+
+            <div class="detail-section derive-section" *ngIf="canShowCompleteSection || completeError">
+              <p class="section-title derive-title">Marcar orden como completada</p>
+              <label class="section-title" for="completionObservation">Observación</label>
+              <textarea
+                id="completionObservation"
+                class="completion-textarea"
+                [value]="completionObservation"
+                maxlength="500"
+                placeholder="Describe brevemente cómo fue atendida la incidencia"
+                [disabled]="completeLoading"
+                (input)="onCompletionObservationChange($event)"></textarea>
+
+              <div *ngIf="completeError" class="derive-error-message">{{ completeError }}</div>
+
+              <button type="button" class="derive-button" *ngIf="canShowCompleteSection" [disabled]="completeLoading" (click)="completeSelectedWorkOrder()">
+                {{ completeLoading ? "Completando..." : "Marcar como completada" }}
+              </button>
+            </div>
+          </ng-container>
+        </ng-template>
+      </ng-template>
+    </section>
+  </div>
+</div>
